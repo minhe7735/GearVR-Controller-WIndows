@@ -188,7 +188,7 @@ namespace GearVR_Controller
                     sendInput(Settings.Default.triggerTopButton);
                     Settings.Default._trig = false;
                 }
-                else if (!Settings.Default._touchpadButton && !Settings.Default._trig)
+                else if (!Settings.Default._triggerButton && !Settings.Default._trig)
                 {
                     Settings.Default._trig = true;
                 }
@@ -224,8 +224,8 @@ namespace GearVR_Controller
                 }
 
                 //TODO
-                //if (Settings.Default._triggerButton && !Settings.Default._triggerButton_latch) { mouse_event(MOUSEEVENTF_LEFTDOWN, 0, 0, 0, 0); Settings.Default._triggerButton_latch = true; }
-                //else if (!Settings.Default._triggerButton && Settings.Default._triggerButton_latch) { mouse_event(MOUSEEVENTF_LEFTUP, 0, 0, 0, 0); Settings.Default._triggerButton_latch = false; }
+                //if (Settings.Default._triggerButton && !Settings.Default._triggerButton_latch) { sendInput(Settings.Default.triggerButton); Settings.Default._triggerButton_latch = true; }
+                //else if (!Settings.Default._triggerButton && Settings.Default._triggerButton_latch) { Settings.Default._triggerButton_latch = false; Debug.WriteLine("released"); }
 
                 if (Settings.Default._homeButton && Settings.Default._volbtn)
                 {
