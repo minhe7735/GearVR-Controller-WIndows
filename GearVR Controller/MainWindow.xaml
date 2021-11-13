@@ -1,0 +1,485 @@
+﻿<Window x:Class="GearVR_Controller.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:GearVR_Controller"
+        mc:Ignorable="d"
+        ResizeMode="CanMinimize"
+        Title="GearVR Controller" Height="475" Width="817">
+
+    
+    <Grid Background="#FF616161">
+        
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="20"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="20"/>
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="20"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="20"/>
+        </Grid.RowDefinitions>
+
+        <!-- Sensor data -->
+        <Label x:Name="sensorDataLabel" Content="Sensor Data" Grid.Column="1" Grid.Row="1" />
+        <CheckBox x:Name="axisCheckBox" IsChecked="{Binding Source={x:Static local:Settings.Default}, Path=Axis, Mode=TwoWay}" Content="Axis" Grid.Column="1" Grid.Row="2" Checked="axisCheckBox_Changed" Unchecked="axisCheckBox_Changed"/>
+        <CheckBox x:Name="gyroCheckBox" IsChecked="{Binding Source={x:Static local:Settings.Default}, Path=Gyro, Mode=TwoWay}" Content="Gyro" Grid.Column="1" Grid.Row="3" Checked="gyroCheckBox_Changed" Unchecked="gyroCheckBox_Changed"/>
+        <CheckBox x:Name="magnetCheckBox" IsChecked="{Binding Source={x:Static local:Settings.Default}, Path=Magnet, Mode=TwoWay}" Content="Magnet" Grid.Column="1" Grid.Row="4" Checked="magnetCheckBox_Changed" Unchecked="magnetCheckBox_Changed"/>
+        <CheckBox x:Name="accelCheckBox" IsChecked="{Binding Source={x:Static local:Settings.Default}, Path=Accel, Mode=TwoWay}"  Content="Accel" Grid.Column="1" Grid.Row="5" Checked="accelCheckBox_Changed" Unchecked="accelCheckBox_Changed"/>
+        <Border BorderThickness="1" BorderBrush="Black" Grid.Column="2" Grid.Row="2" Width="100">
+            <TextBlock x:Name="axisXText" Text="{Binding AxisX , UpdateSourceTrigger=PropertyChanged}" MinWidth="100"/>
+        </Border>
+        <Border BorderThickness="0,1,1,1" BorderBrush="Black" Grid.Column="3" Grid.Row="2" Width="100">
+            <TextBlock x:Name="axisYText" Text="{Binding AxisY , UpdateSourceTrigger=PropertyChanged}" MinWidth="100"/>
+        </Border>
+        <Border BorderThickness="1,0,1,1" BorderBrush="Black" Grid.Column="2" Grid.Row="3" Width="100">
+            <TextBlock x:Name="gyroXText" Text="{Binding GyroX}" MinWidth="100"/>
+        </Border>
+        <Border BorderThickness="1,0,1,1" BorderBrush="Black" Grid.Column="2" Grid.Row="4" Width="100">
+            <TextBlock x:Name="magnetXText" Text="{Binding MagnetX}" MinWidth="100"/>
+        </Border>
+        <Border BorderThickness="1,0,1,1" BorderBrush="Black" Grid.Column="2" Grid.Row="5" Width="100">
+            <TextBlock x:Name="accelXText" Text="{Binding AccelX}" MinWidth="100"/>
+        </Border>
+        <Border BorderThickness="0,0,1,1" BorderBrush="Black" Grid.Column="3" Grid.Row="3" Width="100">
+            <TextBlock x:Name="gyroYText" Text="{Binding GyroY}" MinWidth="100"/>
+        </Border>
+        <Border BorderThickness="0,0,1,1" BorderBrush="Black" Grid.Column="3" Grid.Row="4" Width="100">
+            <TextBlock x:Name="magnetYText" Text="{Binding MagnetY}" MinWidth="100"/>
+        </Border>
+        <Border BorderThickness="0,0,1,1" BorderBrush="Black" Grid.Column="3" Grid.Row="5" Width="100">
+            <TextBlock x:Name="accelYText" Text="{Binding AccelY}" MinWidth="100"/>
+        </Border>
+        <Border BorderThickness="0,1,1,1" BorderBrush="Black" Grid.Column="4" Grid.Row="3" Width="100">
+            <TextBlock x:Name="gyroZText" Text="{Binding GyroZ}" MinWidth="100"/>
+        </Border>
+        <Border BorderThickness="0,0,1,1" BorderBrush="Black" Grid.Column="4" Grid.Row="4" Width="100">
+            <TextBlock x:Name="magnetZText" Text="{Binding MagnetZ}" MinWidth="100" />
+        </Border>
+        <Border BorderThickness="0,0,1,1" BorderBrush="Black" Grid.Column="4" Grid.Row="5" Width="100">
+            <TextBlock x:Name="accelZText" Text="{Binding AccelZ}" MinWidth="100"/>
+        </Border>
+
+        <!-- Device Connection -->
+        <Label x:Name="macAddressLabel" Content="MAC Address" Grid.Column="7" Grid.Row="1"/>
+        <TextBox x:Name="macAddressText" Text="{Binding Source={x:Static local:Settings.Default}, 
+           Path=macAddressText, Mode=TwoWay}" Grid.Column="8" Grid.Row="1" MinWidth="100" VerticalAlignment="Center"/>
+        <Button x:Name="connectButton" Grid.Column="7" Grid.Row="2" Content="Connect" Click="connectButton_Click"/>
+        <Button x:Name="powerOffButton" Grid.Column="8" Grid.Row="2" Content="Turn Off" Click="powerOffButton_Click"/>
+
+        <!-- Wheel -->
+
+        <Button x:Name="scrollWheel" Grid.Column="2" Grid.Row="7" Grid.ColumnSpan="3" Grid.RowSpan="3" Click="scrollWheel_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Path x:Name="scrollWheelPath" Fill="#FF3C3C3C" >
+                            <Path.Data>
+                                <CombinedGeometry GeometryCombineMode="Xor">
+                                    <CombinedGeometry.Geometry1>
+                                        <EllipseGeometry RadiusX="100" RadiusY="100" Center="50,50" />
+                                    </CombinedGeometry.Geometry1>
+                                    <CombinedGeometry.Geometry2>
+                                        <EllipseGeometry RadiusX="115" RadiusY="115" Center="50,50" />
+                                    </CombinedGeometry.Geometry2>
+                                </CombinedGeometry>
+                            </Path.Data>
+                        </Path>
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="scrollWheelPath" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+
+        <!-- Touchpad Buttons -->
+        <Label x:Name="touchPadLabel" Content="ButtonPad" Grid.Column="2" Grid.Row="6" HorizontalAlignment="Center" FontWeight="Bold"/>
+        <Button x:Name="touchTopButton" Grid.Column="2" Grid.Row="6" Content="TOP" Click="touchTopButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Path x:Name="touchTopPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FFC31D1D" StrokeThickness="0">
+                            <Path.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="135"/>
+                                    <TranslateTransform X="0" Y="30"/>
+                                </TransformGroup>
+                            </Path.RenderTransform>
+                            <Path.Data>
+                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
+                            </Path.Data>
+                        </Path>
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="touchTopPath" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <Button x:Name="touchRightButton" Grid.Column="3" Grid.Row="7" Content="RIGHT" Click="touchRightButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Path x:Name="touchRightPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FF4BB578" StrokeThickness="0">
+                            <Path.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="-135"/>
+                                    <TranslateTransform X="-30" Y="0"/>
+                                </TransformGroup>
+                            </Path.RenderTransform>
+                            <Path.Data>
+                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
+                            </Path.Data>
+                        </Path>
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Left" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                            <ContentPresenter.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="90"/>
+                                    <TranslateTransform/>
+                                </TransformGroup>
+                            </ContentPresenter.RenderTransform>
+                        </ContentPresenter>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="touchRightPath" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <Button x:Name="touchBotButton" Grid.Column="2" Grid.Row="8" Content="BOTTOM" Click="touchBotButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Path x:Name="touchBotPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FF9FBD40" StrokeThickness="0">
+                            <Path.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="-45"/>
+                                    <TranslateTransform X="0" Y="-30"/>
+                                </TransformGroup>
+                            </Path.RenderTransform>
+                            <Path.Data>
+                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
+                            </Path.Data>
+                        </Path>
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="touchBotPath" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <Button x:Name="touchLeftButton" Grid.Column="1" Grid.Row="7" Content="LEFT" Click="touchLeftButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Path x:Name="touchLeftPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FF2AA3D6" StrokeThickness="0">
+                            <Path.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="45"/>
+                                    <TranslateTransform X="30" Y="0"/>
+                                </TransformGroup>
+                            </Path.RenderTransform>
+                            <Path.Data>
+                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
+                            </Path.Data>
+                        </Path>
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Right" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                            <ContentPresenter.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="-90"/>
+                                    <TranslateTransform/>
+                                </TransformGroup>
+                            </ContentPresenter.RenderTransform>
+                        </ContentPresenter>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="touchLeftPath" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <Button x:Name="touchMidButton" Grid.Column="2" Grid.Row="7" Content="MID" Click="touchMidButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Ellipse x:Name="touchMidEllipse" Fill="#FF3C3C3C" />
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="touchMidEllipse" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+
+        <!-- Trigger+Pad controls -->
+        <Label x:Name="triggerLabel" Content="TriggerPad" Grid.Column="7" Grid.Row="6" HorizontalAlignment="Center" FontWeight="Bold"/>
+        <Button x:Name="triggerTopButton" Grid.Column="7" Grid.Row="6" Content="TOP" Click="triggerTopButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Path x:Name="triggerTopPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FFC31D1D" StrokeThickness="0">
+                            <Path.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="135"/>
+                                    <TranslateTransform X="0" Y="30"/>
+                                </TransformGroup>
+                            </Path.RenderTransform>
+                            <Path.Data>
+                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
+                            </Path.Data>
+                        </Path>
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="triggerTopPath" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <Button x:Name="triggerRightButton" Grid.Column="8" Grid.Row="7" Content="RIGHT" Click="triggerRightButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Path x:Name="triggerRightPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FF4BB578" StrokeThickness="0">
+                            <Path.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="-135"/>
+                                    <TranslateTransform X="-30" Y="0"/>
+                                </TransformGroup>
+                            </Path.RenderTransform>
+                            <Path.Data>
+                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
+                            </Path.Data>
+                        </Path>
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Left" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                            <ContentPresenter.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="90"/>
+                                    <TranslateTransform/>
+                                </TransformGroup>
+                            </ContentPresenter.RenderTransform>
+                        </ContentPresenter>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="triggerRightPath" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <Button x:Name="triggerBotButton" Grid.Column="7" Grid.Row="8" Content="BOTTOM" Click="triggerBotButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Path x:Name="triggerBotPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FF9FBD40" StrokeThickness="0">
+                            <Path.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="-45"/>
+                                    <TranslateTransform X="0" Y="-30"/>
+                                </TransformGroup>
+                            </Path.RenderTransform>
+                            <Path.Data>
+                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
+                            </Path.Data>
+                        </Path>
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Top"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="triggerBotPath" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <Button x:Name="triggerLeftButton" Grid.Column="6" Grid.Row="7" Content="LEFT" Click="triggerLeftButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Path x:Name="triggerLeftPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FF2AA3D6" StrokeThickness="0">
+                            <Path.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="45"/>
+                                    <TranslateTransform X="30" Y="0"/>
+                                </TransformGroup>
+                            </Path.RenderTransform>
+                            <Path.Data>
+                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
+                            </Path.Data>
+                        </Path>
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Right" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
+                            <ContentPresenter.RenderTransform>
+                                <TransformGroup>
+                                    <ScaleTransform/>
+                                    <SkewTransform/>
+                                    <RotateTransform Angle="-90"/>
+                                    <TranslateTransform/>
+                                </TransformGroup>
+                            </ContentPresenter.RenderTransform>
+                        </ContentPresenter>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="triggerLeftPath" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <Button x:Name="triggerMidButton" Grid.Column="7" Grid.Row="7" Content="MID" Click="triggerMidButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Ellipse x:Name="triggerMidEllipse" Fill="#FF3C3C3C"/>
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="triggerMidEllipse" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+
+        <!-- Other Buttons -->
+        <Button x:Name="triggerButton" Grid.Column="4" Grid.Row="6" Grid.ColumnSpan="2"  Content="TRIGGER" Margin="5" Click="triggerButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <ContentControl>
+                        <Border x:Name="triggerBorder" BorderBrush="Black" Background="#FFD45B5B" BorderThickness="1" CornerRadius="40,40,0,0">
+                            <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ContentControl>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="triggerBorder" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <Button x:Name="backButton" Grid.Column="4" Grid.Row="7" Content="BACK" Width="95" Height="95" Click="backButton_Click" >
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Ellipse x:Name="backButtonEllipse" Fill="#FF3C3C3C" Stroke="Black"/>
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="backButtonEllipse" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <Button x:Name="homeButton" Grid.Column="4" Grid.Row="8" Content="HOME" Width="95" Height="95" Click="homeButton_Click" >
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <Grid>
+                        <Ellipse x:Name="homeButtonEllipse" Fill="#FF3C3C3C" Stroke="Black"/>
+                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Grid>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="homeButtonEllipse" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <Button x:Name="volumeUpButton" Grid.Column="5" Grid.Row="7"  Content="+" FontSize="24" HorizontalAlignment="Stretch" Click="volumeUpButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <ContentControl>
+                        <Border x:Name="volUpBorder" BorderBrush="Black" Background="#FF2E76EC" BorderThickness="1" CornerRadius="30,30,0,0" Margin="5">
+                            <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                    </ContentControl>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="volUpBorder" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+        <Button x:Name="volumeDownButton" Grid.Column="5" Grid.Row="8"  Content="-" FontSize="24" HorizontalAlignment="Stretch" Click="volumeDownButton_Click">
+            <Button.Template>
+                <ControlTemplate TargetType="{x:Type Button}">
+                    <ContentControl>
+                        <Border x:Name="volDownBorder" BorderBrush="Black" Background="#FFDA423B" BorderThickness="1" CornerRadius="0,0,30,30" Margin="5">
+                            <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        </Border>
+                    </ContentControl>
+                    <ControlTemplate.Triggers>
+                        <Trigger Property="IsMouseOver" Value="True">
+                            <Setter TargetName="volDownBorder" Property="Opacity" Value="0.5" />
+                        </Trigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Button.Template>
+        </Button>
+    </Grid>
+</Window> 

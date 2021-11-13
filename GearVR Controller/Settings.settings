@@ -1,0 +1,120 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="GearVR_Controller" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="touchTopButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">UP ARROW</Value>
+    </Setting>
+    <Setting Name="touchRightButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">RIGHT ARROW</Value>
+    </Setting>
+    <Setting Name="touchBotButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">DOWN ARROW</Value>
+    </Setting>
+    <Setting Name="touchLeftButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">LEFT ARROW</Value>
+    </Setting>
+    <Setting Name="touchMidButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Toggle</Value>
+    </Setting>
+    <Setting Name="triggerTopButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">UP ARROW</Value>
+    </Setting>
+    <Setting Name="triggerRightButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">RIGHT ARROW</Value>
+    </Setting>
+    <Setting Name="triggerBotButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">DOWN ARROW</Value>
+    </Setting>
+    <Setting Name="triggerLeftButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">LEFT ARROW</Value>
+    </Setting>
+    <Setting Name="triggerMidButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Toggle</Value>
+    </Setting>
+    <Setting Name="triggerButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Left mouse button</Value>
+    </Setting>
+    <Setting Name="backButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Browser Back</Value>
+    </Setting>
+    <Setting Name="volumeUpButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Volume Up</Value>
+    </Setting>
+    <Setting Name="volumeDownButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Volume Down</Value>
+    </Setting>
+    <Setting Name="macAddressText" Type="System.String" Scope="User">
+      <Value Profile="(Default)">F6:FA:0F:BA:BA:2C</Value>
+    </Setting>
+    <Setting Name="Axis" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="Gyro" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="Magnet" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="Accel" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="currentButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="homeButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Browser Home</Value>
+    </Setting>
+    <Setting Name="_triggerButton" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_homeButton" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_backButton" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_touchpadButton" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_volumeUpButton" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_volumeDownButton" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_NoButton" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_touchpadButton_latch" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_triggerButton_latch" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_useWheel" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_useTouch" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_reset" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_volbtn" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_tchbtn" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_trig" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="_numberOfWheelPositions" Type="System.Int32" Scope="Application">
+      <Value Profile="(Default)">100</Value>
+    </Setting>
+    <Setting Name="scrollWheel" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">12</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
