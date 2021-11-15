@@ -24,14 +24,14 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="auto"/>
         </Grid.RowDefinitions>
-        <Button x:Name="launchButton" Grid.Column="0" Grid.Row="0" Content="Launch" Margin="1" Width="50" Height="50" Click="launchButton_Click"></Button>
-        <input:AutoCompleteBox x:Name="keyCodeAutoCompleteBox" ItemsSource="{Binding Source={StaticResource KeyCodes}}" ValueMemberPath="Key" Grid.Column="1" Grid.Row="0" Width="448" Height="50" VerticalAlignment="Center" Margin="2" FontSize="36" FontWeight="Normal" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
+        <Button x:Name="LaunchButton" Grid.Column="0" Grid.Row="0" Content="Launch" Margin="1" Width="50" Height="50" Click="LaunchButton_Click"></Button>
+        <input:AutoCompleteBox x:Name="KeyCodeAutoCompleteBox" ItemsSource="{Binding Source={StaticResource KeyCodes}}" ValueMemberPath="Key" Grid.Column="1" Grid.Row="0" Width="448" Height="50" VerticalAlignment="Center" Margin="2" FontSize="36" FontWeight="Normal" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center" VerticalContentAlignment="Center">
             <input:AutoCompleteBox.ItemTemplate>
                 <DataTemplate>
                     <TextBlock Text="{Binding Key}"/>
                 </DataTemplate>
             </input:AutoCompleteBox.ItemTemplate>
         </input:AutoCompleteBox>
-        <Button x:Name="saveButton" Grid.Column="2" Grid.Row="0" Content="Save" Margin="1" Width="50" Height="50"  Click="saveButton_Click"/>
+        <Button x:Name="SaveButton" Grid.Column="2" Grid.Row="0" Content="Save" Margin="1" Width="50" Height="50"  Click="SaveButton_Click"/>
     </Grid>
 </Window>

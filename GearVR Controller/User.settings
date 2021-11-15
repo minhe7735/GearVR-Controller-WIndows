@@ -1,0 +1,72 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="GearVR_Controller" GeneratedClassName="User">
+  <Profiles />
+  <Settings>
+    <Setting Name="TouchTopButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">UP ARROW</Value>
+    </Setting>
+    <Setting Name="TouchRightButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">RIGHT ARROW</Value>
+    </Setting>
+    <Setting Name="TouchBotButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">DOWN ARROW</Value>
+    </Setting>
+    <Setting Name="TouchLeftButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">LEFT ARROW</Value>
+    </Setting>
+    <Setting Name="TouchMidButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Toggle</Value>
+    </Setting>
+    <Setting Name="TriggerTopButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">UP ARROW</Value>
+    </Setting>
+    <Setting Name="TriggerRightButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">RIGHT ARROW</Value>
+    </Setting>
+    <Setting Name="TriggerBotButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">DOWN ARROW</Value>
+    </Setting>
+    <Setting Name="TriggerLeftButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">LEFT ARROW</Value>
+    </Setting>
+    <Setting Name="TriggerMidButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Toggle</Value>
+    </Setting>
+    <Setting Name="TriggerButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Mouse left button</Value>
+    </Setting>
+    <Setting Name="BackButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Browser Back</Value>
+    </Setting>
+    <Setting Name="VolumeUpButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Volume Up</Value>
+    </Setting>
+    <Setting Name="VolumeDownButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Volume Down</Value>
+    </Setting>
+    <Setting Name="MACAddressText" Type="System.String" Scope="User">
+      <Value Profile="(Default)">F6:FA:0F:BA:BA:2C</Value>
+    </Setting>
+    <Setting Name="Axis" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="Gyro" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="Magnet" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="Accel" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="HomeButton" Type="System.String" Scope="User">
+      <Value Profile="(Default)">Browser Start and Home</Value>
+    </Setting>
+    <Setting Name="ScrollWheelSeg" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">100</Value>
+    </Setting>
+    <Setting Name="ScrollWheelSpeed" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">12</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>

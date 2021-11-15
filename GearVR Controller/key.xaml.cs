@@ -17,28 +17,28 @@ namespace GearVR_Controller
             InitializeComponent();
             Settings.Default.currentButton = v;
             Binding keyCodeAutoCompleteBoxBinding = new();
-            keyCodeAutoCompleteBoxBinding.Source = Settings.Default;
+            keyCodeAutoCompleteBoxBinding.Source = User.Default;
             keyCodeAutoCompleteBoxBinding.Path = new PropertyPath(v);
             keyCodeAutoCompleteBoxBinding.Mode = BindingMode.TwoWay;
             keyCodeAutoCompleteBoxBinding.UpdateSourceTrigger = UpdateSourceTrigger.PropertyChanged;
-            BindingOperations.SetBinding(keyCodeAutoCompleteBox, AutoCompleteBox.TextProperty, keyCodeAutoCompleteBoxBinding);
+            BindingOperations.SetBinding(KeyCodeAutoCompleteBox, AutoCompleteBox.TextProperty, keyCodeAutoCompleteBoxBinding);
         }
 
-        private void saveButton_Click(object sender, RoutedEventArgs e)
+        private void SaveButton_Click(object sender, RoutedEventArgs e)
         {
-            if (KeyCodeCollection.GetKeyCodes().ContainsKey(keyCodeAutoCompleteBox.Text) && !keyCodeAutoCompleteBox.Text.StartsWith("--"))
+            if (KeyCodeCollection.GetKeyCodes().ContainsKey(KeyCodeAutoCompleteBox.Text) && !KeyCodeAutoCompleteBox.Text.StartsWith("--"))
             {
-                Settings.Default.Save();
+                User.Default.Save();
                 this.Close();
             }
-            else if (Settings.Default.currentButton == "scrollWheel" && int.TryParse(keyCodeAutoCompleteBox.Text, out _) )
+            else if (Settings.Default.currentButton.StartsWith("ScrollWheel") && int.TryParse(KeyCodeAutoCompleteBox.Text, out _) )
             {
-                Settings.Default.Save();
+                User.Default.Save();
                 this.Close();
             }
-            else if (keyCodeAutoCompleteBox.Text.StartsWith("Launch:"))
+            else if (KeyCodeAutoCompleteBox.Text.StartsWith("Launch:"))
             {
-                Settings.Default.Save();
+                User.Default.Save();
                 this.Close();
             }
             else
@@ -47,7 +47,7 @@ namespace GearVR_Controller
             }
         }
 
-        private void launchButton_Click(object sender, RoutedEventArgs e)
+        private void LaunchButton_Click(object sender, RoutedEventArgs e)
         {
             OpenFileDialog chooseFile = new();
             chooseFile.Filter = "All Files (*.*)|*.*";
@@ -56,7 +56,7 @@ namespace GearVR_Controller
             if (result == true)
             {
                 string filename = chooseFile.FileName;
-                keyCodeAutoCompleteBox.Text = "Launch: " + filename;
+                KeyCodeAutoCompleteBox.Text = "Launch: " + filename;
             }
         }
     }

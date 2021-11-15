@@ -41,148 +41,154 @@ namespace GearVR_Controller
             }
         }
 
-        private void scrollWheel_Click(object sender, RoutedEventArgs e)
+        private void ScrollWheelSpeed_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("scrollWheel");
+            Key changeBinding = new("ScrollWheelSpeed");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
-        private void touchTopButton_Click(object sender, RoutedEventArgs e)
+        private void ScrollWheelSeg_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("touchTopButton");
+            Key changeBinding = new("ScrollWheelSeg");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
-
-        private void touchRightButton_Click(object sender, RoutedEventArgs e)
+        private void TouchTopButton_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("touchRightButton");
-            changeBinding.Owner = this;
-            changeBinding.ShowDialog();
-        }
-
-        private void touchBotButton_Click(object sender, RoutedEventArgs e)
-        {
-            Key changeBinding = new("touchBotButton");
+            Key changeBinding = new("TouchTopButton");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
 
-        private void touchLeftButton_Click(object sender, RoutedEventArgs e)
+        private void TouchRightButton_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("touchLeftButton");
+            Key changeBinding = new("TouchRightButton");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
 
-        private void touchMidButton_Click(object sender, RoutedEventArgs e)
+        private void TouchBotButton_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("touchMidButton");
+            Key changeBinding = new("TouchBotButton");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
 
-        private void triggerButton_Click(object sender, RoutedEventArgs e)
+        private void TouchLeftButton_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("triggerButton");
+            Key changeBinding = new("TouchLeftButton");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
 
-        private void backButton_Click(object sender, RoutedEventArgs e)
+        private void TouchMidButton_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("backButton");
+            Key changeBinding = new("TouchMidButton");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
 
-        private void homeButton_Click(object sender, RoutedEventArgs e)
+        private void TriggerButton_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("homeButton");
+            Key changeBinding = new("TriggerButton");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
 
-        private void volumeUpButton_Click(object sender, RoutedEventArgs e)
+        private void BackButton_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("volumeUpButton");
+            Key changeBinding = new("BackButton");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
 
-        private void volumeDownButton_Click(object sender, RoutedEventArgs e)
+        private void HomeButton_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("volumeDownButton");
+            Key changeBinding = new("HomeButton");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
 
-        private void triggerTopButton_Click(object sender, RoutedEventArgs e)
+        private void VolumeUpButton_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("triggerTopButton");
+            Key changeBinding = new("VolumeUpButton");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
 
-        private void triggerRightButton_Click(object sender, RoutedEventArgs e)
+        private void VolumeDownButton_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("triggerRightButton");
+            Key changeBinding = new("VolumeDownButton");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
 
-        private void triggerBotButton_Click(object sender, RoutedEventArgs e)
+        private void TriggerTopButton_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("triggerBotButton");
+            Key changeBinding = new("TriggerTopButton");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
 
-        private void triggerLeftButton_Click(object sender, RoutedEventArgs e)
+        private void TriggerRightButton_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("triggerLeftButton");
+            Key changeBinding = new("TriggerRightButton");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
 
-        private void triggerMidButton_Click(object sender, RoutedEventArgs e)
+        private void TriggerBotButton_Click(object sender, RoutedEventArgs e)
         {
-            Key changeBinding = new("triggerMidButton");
+            Key changeBinding = new("TriggerBotButton");
             changeBinding.Owner = this;
             changeBinding.ShowDialog();
         }
 
-        private void connectButton_Click(object sender, RoutedEventArgs e)
+        private void TriggerLeftButton_Click(object sender, RoutedEventArgs e)
         {
-            Settings.Default.Save();
-            MainProgram gvrc = MainProgram.getInstance();
+            Key changeBinding = new("TriggerLeftButton");
+            changeBinding.Owner = this;
+            changeBinding.ShowDialog();
+        }
+
+        private void TriggerMidButton_Click(object sender, RoutedEventArgs e)
+        {
+            Key changeBinding = new("TriggerMidButton");
+            changeBinding.Owner = this;
+            changeBinding.ShowDialog();
+        }
+
+        private void ConnectButton_Click(object sender, RoutedEventArgs e)
+        {
+            User.Default.Save();
+            MainProgram gvrc = MainProgram.GetInstance();
             gvrc.Pair_Connect();
 
         }
 
-        private void powerOffButton_Click(object sender, RoutedEventArgs e)
+        private void PowerOffButton_Click(object sender, RoutedEventArgs e)
         {
-            MainProgram.getInstance().Disconnect();
+            MainProgram.GetInstance().Disconnect();
         }
 
-        private void axisCheckBox_Changed(object sender, RoutedEventArgs e)
+        private void AxisCheckBox_Changed(object sender, RoutedEventArgs e)
         {
-            Settings.Default.Save();
+            User.Default.Save();
         }
 
-        private void gyroCheckBox_Changed(object sender, RoutedEventArgs e)
+        private void GyroCheckBox_Changed(object sender, RoutedEventArgs e)
         {
-            Settings.Default.Save();
+            User.Default.Save();
         }
 
-        private void magnetCheckBox_Changed(object sender, RoutedEventArgs e)
+        private void MagnetCheckBox_Changed(object sender, RoutedEventArgs e)
         {
-            Settings.Default.Save();
+            User.Default.Save();
         }
 
-        private void accelCheckBox_Changed(object sender, RoutedEventArgs e)
+        private void AccelCheckBox_Changed(object sender, RoutedEventArgs e)
         {
-            Settings.Default.Save();
+            User.Default.Save();
         }
     }
 

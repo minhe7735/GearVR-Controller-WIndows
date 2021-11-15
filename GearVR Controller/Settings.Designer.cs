@@ -25,325 +25,73 @@ namespace GearVR_Controller {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("UP ARROW")]
-        public string touchTopButton {
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool _TriggerButton {
             get {
-                return ((string)(this["touchTopButton"]));
+                return ((bool)(this["_TriggerButton"]));
             }
             set {
-                this["touchTopButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("RIGHT ARROW")]
-        public string touchRightButton {
-            get {
-                return ((string)(this["touchRightButton"]));
-            }
-            set {
-                this["touchRightButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("DOWN ARROW")]
-        public string touchBotButton {
-            get {
-                return ((string)(this["touchBotButton"]));
-            }
-            set {
-                this["touchBotButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("LEFT ARROW")]
-        public string touchLeftButton {
-            get {
-                return ((string)(this["touchLeftButton"]));
-            }
-            set {
-                this["touchLeftButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Toggle")]
-        public string touchMidButton {
-            get {
-                return ((string)(this["touchMidButton"]));
-            }
-            set {
-                this["touchMidButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("UP ARROW")]
-        public string triggerTopButton {
-            get {
-                return ((string)(this["triggerTopButton"]));
-            }
-            set {
-                this["triggerTopButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("RIGHT ARROW")]
-        public string triggerRightButton {
-            get {
-                return ((string)(this["triggerRightButton"]));
-            }
-            set {
-                this["triggerRightButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("DOWN ARROW")]
-        public string triggerBotButton {
-            get {
-                return ((string)(this["triggerBotButton"]));
-            }
-            set {
-                this["triggerBotButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("LEFT ARROW")]
-        public string triggerLeftButton {
-            get {
-                return ((string)(this["triggerLeftButton"]));
-            }
-            set {
-                this["triggerLeftButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Toggle")]
-        public string triggerMidButton {
-            get {
-                return ((string)(this["triggerMidButton"]));
-            }
-            set {
-                this["triggerMidButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Left mouse button")]
-        public string triggerButton {
-            get {
-                return ((string)(this["triggerButton"]));
-            }
-            set {
-                this["triggerButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Browser Back")]
-        public string backButton {
-            get {
-                return ((string)(this["backButton"]));
-            }
-            set {
-                this["backButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Volume Up")]
-        public string volumeUpButton {
-            get {
-                return ((string)(this["volumeUpButton"]));
-            }
-            set {
-                this["volumeUpButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Volume Down")]
-        public string volumeDownButton {
-            get {
-                return ((string)(this["volumeDownButton"]));
-            }
-            set {
-                this["volumeDownButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("F6:FA:0F:BA:BA:2C")]
-        public string macAddressText {
-            get {
-                return ((string)(this["macAddressText"]));
-            }
-            set {
-                this["macAddressText"] = value;
+                this["_TriggerButton"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool Axis {
+        public bool _HomeButton {
             get {
-                return ((bool)(this["Axis"]));
+                return ((bool)(this["_HomeButton"]));
             }
             set {
-                this["Axis"] = value;
+                this["_HomeButton"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool Gyro {
+        public bool _BackButton {
             get {
-                return ((bool)(this["Gyro"]));
+                return ((bool)(this["_BackButton"]));
             }
             set {
-                this["Gyro"] = value;
+                this["_BackButton"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool Magnet {
+        public bool _TouchpadButton {
             get {
-                return ((bool)(this["Magnet"]));
+                return ((bool)(this["_TouchpadButton"]));
             }
             set {
-                this["Magnet"] = value;
+                this["_TouchpadButton"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool Accel {
+        public bool _VolumeUpButton {
             get {
-                return ((bool)(this["Accel"]));
+                return ((bool)(this["_VolumeUpButton"]));
             }
             set {
-                this["Accel"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string currentButton {
-            get {
-                return ((string)(this["currentButton"]));
-            }
-            set {
-                this["currentButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("Browser Home")]
-        public string homeButton {
-            get {
-                return ((string)(this["homeButton"]));
-            }
-            set {
-                this["homeButton"] = value;
+                this["_VolumeUpButton"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool _triggerButton {
+        public bool _VolumeDownButton {
             get {
-                return ((bool)(this["_triggerButton"]));
+                return ((bool)(this["_VolumeDownButton"]));
             }
             set {
-                this["_triggerButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool _homeButton {
-            get {
-                return ((bool)(this["_homeButton"]));
-            }
-            set {
-                this["_homeButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool _backButton {
-            get {
-                return ((bool)(this["_backButton"]));
-            }
-            set {
-                this["_backButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool _touchpadButton {
-            get {
-                return ((bool)(this["_touchpadButton"]));
-            }
-            set {
-                this["_touchpadButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool _volumeUpButton {
-            get {
-                return ((bool)(this["_volumeUpButton"]));
-            }
-            set {
-                this["_volumeUpButton"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool _volumeDownButton {
-            get {
-                return ((bool)(this["_volumeDownButton"]));
-            }
-            set {
-                this["_volumeDownButton"] = value;
+                this["_VolumeDownButton"] = value;
             }
         }
         
@@ -362,117 +110,216 @@ namespace GearVR_Controller {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool _touchpadButton_latch {
+        public bool _TouchpadButton_latch {
             get {
-                return ((bool)(this["_touchpadButton_latch"]));
+                return ((bool)(this["_TouchpadButton_latch"]));
             }
             set {
-                this["_touchpadButton_latch"] = value;
+                this["_TouchpadButton_latch"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool _triggerButton_latch {
+        public bool _TriggerButton_latch {
             get {
-                return ((bool)(this["_triggerButton_latch"]));
+                return ((bool)(this["_TriggerButton_latch"]));
             }
             set {
-                this["_triggerButton_latch"] = value;
+                this["_TriggerButton_latch"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool _useWheel {
+        public bool _UseWheel {
             get {
-                return ((bool)(this["_useWheel"]));
+                return ((bool)(this["_UseWheel"]));
             }
             set {
-                this["_useWheel"] = value;
+                this["_UseWheel"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool _useTouch {
+        public bool _UseTouch {
             get {
-                return ((bool)(this["_useTouch"]));
+                return ((bool)(this["_UseTouch"]));
             }
             set {
-                this["_useTouch"] = value;
+                this["_UseTouch"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool _reset {
+        public bool _Reset {
             get {
-                return ((bool)(this["_reset"]));
+                return ((bool)(this["_Reset"]));
             }
             set {
-                this["_reset"] = value;
+                this["_Reset"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool _volbtn {
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool _VolUpBtn {
             get {
-                return ((bool)(this["_volbtn"]));
+                return ((bool)(this["_VolUpBtn"]));
             }
             set {
-                this["_volbtn"] = value;
+                this["_VolUpBtn"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool _tchbtn {
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool _TchBtn {
             get {
-                return ((bool)(this["_tchbtn"]));
+                return ((bool)(this["_TchBtn"]));
             }
             set {
-                this["_tchbtn"] = value;
+                this["_TchBtn"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("False")]
-        public bool _trig {
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool _TrigBtn {
             get {
-                return ((bool)(this["_trig"]));
+                return ((bool)(this["_TrigBtn"]));
             }
             set {
-                this["_trig"] = value;
-            }
-        }
-        
-        [global::System.Configuration.ApplicationScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("100")]
-        public int _numberOfWheelPositions {
-            get {
-                return ((int)(this["_numberOfWheelPositions"]));
+                this["_TrigBtn"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("12")]
-        public int scrollWheel {
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string _CurrentInput {
             get {
-                return ((int)(this["scrollWheel"]));
+                return ((string)(this["_CurrentInput"]));
             }
             set {
-                this["scrollWheel"] = value;
+                this["_CurrentInput"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string _Release {
+            get {
+                return ((string)(this["_Release"]));
+            }
+            set {
+                this["_Release"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool _HomeBtn {
+            get {
+                return ((bool)(this["_HomeBtn"]));
+            }
+            set {
+                this["_HomeBtn"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool _BackBtn {
+            get {
+                return ((bool)(this["_BackBtn"]));
+            }
+            set {
+                this["_BackBtn"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public long _TimePrev {
+            get {
+                return ((long)(this["_TimePrev"]));
+            }
+            set {
+                this["_TimePrev"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool _VolDownBtn {
+            get {
+                return ((bool)(this["_VolDownBtn"]));
+            }
+            set {
+                this["_VolDownBtn"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string currentButton {
+            get {
+                return ((string)(this["currentButton"]));
+            }
+            set {
+                this["currentButton"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("#BB0000")]
+        public string _Status {
+            get {
+                return ((string)(this["_Status"]));
+            }
+            set {
+                this["_Status"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("#FF0000")]
+        public string _StatusEffect {
+            get {
+                return ((string)(this["_StatusEffect"]));
+            }
+            set {
+                this["_StatusEffect"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("5000")]
+        public double _TimeOut {
+            get {
+                return ((double)(this["_TimeOut"]));
+            }
+            set {
+                this["_TimeOut"] = value;
             }
         }
     }

@@ -13,7 +13,7 @@
             set
             {
                 axisX = value;
-                if (Settings.Default.Axis) OnPropertyChanged();
+                if (User.Default.Axis) OnPropertyChanged();
             }
         }
 
@@ -24,7 +24,7 @@
             set
             {
                 axisY = value;
-                if (Settings.Default.Axis) OnPropertyChanged();
+                if (User.Default.Axis) OnPropertyChanged();
             }
         }
 
@@ -35,7 +35,7 @@
             set
             {
                 accelX = value;
-                if (Settings.Default.Accel) OnPropertyChanged();
+                if (User.Default.Accel) OnPropertyChanged();
             }
         }
 
@@ -46,7 +46,7 @@
             set
             {
                 accelY = value;
-                if (Settings.Default.Accel) OnPropertyChanged();
+                if (User.Default.Accel) OnPropertyChanged();
             }
         }
 
@@ -57,7 +57,7 @@
             set
             {
                 accelZ = value;
-                if (Settings.Default.Accel) OnPropertyChanged();
+                if (User.Default.Accel) OnPropertyChanged();
             }
         }
 
@@ -68,7 +68,7 @@
             set
             {
                 gyroX = value;
-                if (Settings.Default.Gyro) OnPropertyChanged();
+                if (User.Default.Gyro) OnPropertyChanged();
             }
         }
 
@@ -79,7 +79,7 @@
             set
             {
                 gyroY = value;
-                if (Settings.Default.Gyro) OnPropertyChanged();
+                if (User.Default.Gyro) OnPropertyChanged();
             }
         }
 
@@ -90,7 +90,7 @@
             set
             {
                 gyroZ = value;
-                if (Settings.Default.Gyro) OnPropertyChanged();
+                if (User.Default.Gyro) OnPropertyChanged();
             }
         }
 
@@ -101,7 +101,7 @@
             set
             {
                 magnetX = value;
-                if (Settings.Default.Magnet) OnPropertyChanged();
+                if (User.Default.Magnet) OnPropertyChanged();
             }
         }
 
@@ -112,7 +112,7 @@
             set
             {
                 magnetY = value;
-                if (Settings.Default.Magnet) OnPropertyChanged();
+                if (User.Default.Magnet) OnPropertyChanged();
             }
         }
 
@@ -123,36 +123,36 @@
             set
             {
                 magnetZ = value;
-                if (Settings.Default.Magnet) OnPropertyChanged();
+                if (User.Default.Magnet) OnPropertyChanged();
             }
         }
 
-        private int __axisX;
-        public int __AxisX
+        private int _axisX;
+        public int _AxisX
         {
-            get { return __axisX; }
-            set { __axisX = value; }
+            get { return _axisX; }
+            set { _axisX = value; }
         }
 
-        private int __axisY;
-        public int __AxisY
+        private int _axisY;
+        public int _AxisY
         {
-            get { return __axisY; }
-            set { __axisY = value; }
+            get { return _axisY; }
+            set { _axisY = value; }
         }
 
-        private int __altX;
-        public int __AltX
+        private int _altX;
+        public int _AltX
         {
-            get { return __altX; }
-            set { __altX = value; }
+            get { return _altX; }
+            set { _altX = value; }
         }
 
-        private int __altY;
-        public int __AltY
+        private int _altY;
+        public int _AltY
         {
-            get { return __altY; }
-            set { __altY = value; }
+            get { return _altY; }
+            set { _altY = value; }
         }
 
         private int wheelPos;
