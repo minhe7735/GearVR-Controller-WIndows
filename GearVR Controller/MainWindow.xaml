@@ -8,9 +8,9 @@
         ResizeMode="CanMinimize"
         Title="GearVR Controller" Height="475" Width="817">
 
-    
+
     <Grid Background="#FF616161">
-        
+
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="20"/>
             <ColumnDefinition Width="Auto"/>

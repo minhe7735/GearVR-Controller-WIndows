@@ -31,7 +31,7 @@ namespace GearVR_Controller
                 User.Default.Save();
                 this.Close();
             }
-            else if (Settings.Default.currentButton.StartsWith("ScrollWheel") && int.TryParse(KeyCodeAutoCompleteBox.Text, out _) )
+            else if (Settings.Default.currentButton.StartsWith("ScrollWheel") && int.TryParse(KeyCodeAutoCompleteBox.Text, out _))
             {
                 User.Default.Save();
                 this.Close();

@@ -2,7 +2,7 @@
 {
     public class SensorData : ObservableObject
     {
-        private static SensorData instance = new();
+        private static readonly SensorData instance = new();
         private SensorData() { }
         public static SensorData GetInstance() { return instance; }
 

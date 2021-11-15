@@ -55,7 +55,7 @@ namespace GearVR_Controller
                 case "X1":
 
                 case "X2":
-                    if(input == Settings.Default._CurrentInput)
+                    if (input == Settings.Default._CurrentInput)
                     {
                         mouse_event(KeyCodeCollection.GetKeyCodes()["--Don't Use This X DOWN"], 0, 0, (byte)KeyCodeCollection.GetKeyCodes()[input], 0);
                     }
@@ -65,7 +65,7 @@ namespace GearVR_Controller
                     }
                     break;
                 case "Mouse":
-                    if(input == Settings.Default._CurrentInput)
+                    if (input == Settings.Default._CurrentInput)
                     {
                         mouse_event((byte)KeyCodeCollection.GetKeyCodes()["--Don't Use This " + input + " DOWN"], 0, 0, 0, 0);
                     }
@@ -75,7 +75,7 @@ namespace GearVR_Controller
                     }
                     break;
                 case "Launch:":
-                    if(input != Settings.Default._CurrentInput)
+                    if (input != Settings.Default._CurrentInput)
                     {
                         Process P = new();
                         P.StartInfo.UseShellExecute = true;
@@ -86,12 +86,12 @@ namespace GearVR_Controller
                 default:
                     if (input == Settings.Default._CurrentInput)
                     {
-                        keybd_event((byte)KeyCodeCollection.GetKeyCodes()[input], 0, 1|0, 0);
+                        keybd_event((byte)KeyCodeCollection.GetKeyCodes()[input], 0, 1 | 0, 0);
                         Settings.Default._TimePrev = DateTimeOffset.Now.ToUnixTimeMilliseconds();
                     }
                     else
                     {
-                        keybd_event((byte)KeyCodeCollection.GetKeyCodes()[input], 0, 1|2, 0);
+                        keybd_event((byte)KeyCodeCollection.GetKeyCodes()[input], 0, 1 | 2, 0);
                     }
                     break;
             }
@@ -320,20 +320,20 @@ namespace GearVR_Controller
 
             if (Settings.Default._UseWheel)
             {
-                if (Math.Abs(sensorData._WheelPos - sensorData.WheelPos) > 1 
+                if (Math.Abs(sensorData._WheelPos - sensorData.WheelPos) > 1
                     && Math.Abs((sensorData._WheelPos + 1) % User.Default.ScrollWheelSeg - (sensorData.WheelPos + 1) % User.Default.ScrollWheelSeg) > 1)
                 {
                     sensorData._WheelPos = sensorData.WheelPos;
                     return;
                 }
-                if ((sensorData._WheelPos - sensorData.WheelPos) == 1 
+                if ((sensorData._WheelPos - sensorData.WheelPos) == 1
                     || ((sensorData._WheelPos + 1) % User.Default.ScrollWheelSeg - (sensorData.WheelPos + 1) % User.Default.ScrollWheelSeg) == 1)
                 {
                     sensorData._WheelPos = sensorData.WheelPos;
                     SendInput("SWheelUP");
                     return;
                 }
-                if ((sensorData.WheelPos - sensorData._WheelPos) == 1 
+                if ((sensorData.WheelPos - sensorData._WheelPos) == 1
                     || ((sensorData.WheelPos + 1) % User.Default.ScrollWheelSeg - (sensorData._WheelPos + 1) % User.Default.ScrollWheelSeg) == 1)
                 {
                     sensorData._WheelPos = sensorData.WheelPos;
@@ -383,7 +383,7 @@ namespace GearVR_Controller
         private static int FwheelPos(int x, int y)
         {
             int pos;
-            if (x == 0 && y == 0) {}
+            if (x == 0 && y == 0) { }
             Complex cnum = new(x - 157, y - 157);
             pos = (int)Math.Floor((cnum.Phase * 180 / Math.PI) / 360.0 * User.Default.ScrollWheelSeg);
             return pos;
@@ -464,7 +464,7 @@ namespace GearVR_Controller
             if (write_characteristic == null) return;
             try
             {
-                await write_characteristic.WriteValueAsync(CryptographicBuffer.CreateFromByteArray(value)); 
+                await write_characteristic.WriteValueAsync(CryptographicBuffer.CreateFromByteArray(value));
             }
             catch (Exception e)
             {
@@ -530,7 +530,7 @@ namespace GearVR_Controller
                     {
                         // This usually happens when not all characteristics are found
                         // or selected characteristic has no Notify.
-                        
+
                         Debug.Write(ex.ToString());
                         await Task.Delay(100);
                         await Get_Characteristics(myService); //try again !!! Add a max try counter to prevent infinite loop!!!!!!!
