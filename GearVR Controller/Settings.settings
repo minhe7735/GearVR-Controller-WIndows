@@ -75,7 +75,19 @@
       <Value Profile="(Default)">#FF0000</Value>
     </Setting>
     <Setting Name="_TimeOut" Type="System.Double" Scope="User">
-      <Value Profile="(Default)">5000</Value>
+      <Value Profile="(Default)">1000</Value>
+    </Setting>
+    <Setting Name="_Service" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">4f63756c-7573-2054-6872-65656d6f7465</Value>
+    </Setting>
+    <Setting Name="_Write" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">c8c51726-81bc-483b-a052-f7a14ea3d282</Value>
+    </Setting>
+    <Setting Name="_Notify" Type="System.String" Scope="Application">
+      <Value Profile="(Default)">c8c51726-81bc-483b-a052-f7a14ea3d281</Value>
+    </Setting>
+    <Setting Name="_Connected" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
     </Setting>
   </Settings>
 </SettingsFile>

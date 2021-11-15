@@ -313,13 +313,52 @@ namespace GearVR_Controller {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("5000")]
+        [global::System.Configuration.DefaultSettingValueAttribute("1000")]
         public double _TimeOut {
             get {
                 return ((double)(this["_TimeOut"]));
             }
             set {
                 this["_TimeOut"] = value;
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("4f63756c-7573-2054-6872-65656d6f7465")]
+        public string _Service {
+            get {
+                return ((string)(this["_Service"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("c8c51726-81bc-483b-a052-f7a14ea3d282")]
+        public string _Write {
+            get {
+                return ((string)(this["_Write"]));
+            }
+        }
+        
+        [global::System.Configuration.ApplicationScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("c8c51726-81bc-483b-a052-f7a14ea3d281")]
+        public string _Notify {
+            get {
+                return ((string)(this["_Notify"]));
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool _Connected {
+            get {
+                return ((bool)(this["_Connected"]));
+            }
+            set {
+                this["_Connected"] = value;
             }
         }
     }

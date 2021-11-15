@@ -170,7 +170,6 @@
         }
 
         private int delta_X;
-
         public int Delta_X
         {
             get { return delta_X; }
@@ -178,13 +177,24 @@
         }
 
         private int delta_Y;
-
         public int Delta_Y
         {
             get { return delta_Y; }
             set { delta_Y = value; }
         }
 
+        private int shiftedX;
+        public int ShiftedX
+        {
+            get { return shiftedX; }
+            set { shiftedX = value; }
+        }
 
+        private int shiftedY;
+        public int ShiftedY
+        {
+            get { return shiftedY; }
+            set { shiftedY = value; }
+        }
     }
 }
