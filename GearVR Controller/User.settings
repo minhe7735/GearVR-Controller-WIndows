@@ -63,10 +63,13 @@
       <Value Profile="(Default)">Browser Start and Home</Value>
     </Setting>
     <Setting Name="ScrollWheelSeg" Type="System.Int32" Scope="User">
-      <Value Profile="(Default)">100</Value>
+      <Value Profile="(Default)">300</Value>
     </Setting>
     <Setting Name="ScrollWheelSpeed" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">12</Value>
+    </Setting>
+    <Setting Name="AutoConnect" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
     </Setting>
   </Settings>
 </SettingsFile>

@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:GearVR_Controller"
         mc:Ignorable="d"
         ResizeMode="CanMinimize"
-        Title="GearVR Controller" Height="475" Width="817">
+        Title="GearVR Controller" Height="475" Width="817" Loaded="Window_Loaded" Closing="Window_Closing">
 
 
     <Grid Background="#FF616161">
@@ -89,6 +89,7 @@
            Path=MACAddressText, Mode=TwoWay}" Grid.Column="8" Grid.Row="1" MinWidth="100" VerticalAlignment="Center"/>
         <Button x:Name="ConnectButton" Grid.Column="7" Grid.Row="2" Content="Connect" Click="ConnectButton_Click"/>
         <Button x:Name="PowerOffButton" Grid.Column="8" Grid.Row="2" Content="Turn Off" Click="PowerOffButton_Click"/>
+        <CheckBox x:Name="CheckBoxAutoConnect" IsChecked="{Binding Source={x:Static local:User.Default}, Path=AutoConnect, Mode=TwoWay}" Content="Auto-connect" Grid.Column="7" Grid.Row="4" />
 
         <!-- Wheel -->
 
