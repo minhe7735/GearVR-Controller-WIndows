@@ -34,6 +34,8 @@ namespace GearVR_Controller
         {
             // Save user settings on exit
             User.Default.Save();
+            
+            MainProgram.GetInstance().Disconnect();
         }
 
 
