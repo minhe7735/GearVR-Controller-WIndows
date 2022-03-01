@@ -34,17 +34,17 @@ namespace GearVR_Controller
             string hex = macAddress.Replace(":", "");
             return Convert.ToUInt64(hex, 16);
         }
-        private static void SendInput(string input)
+        private static void SendInput(string input, int aStrength = 0)
         {
             if (input == null) return;
             string[] words = input.Split(' ');
             switch (words[0])
             {
-                case "SWheelUP":
-                    mouse_event(KeyCodeCollection.GetKeyCodes()["--Don't Use This Mouse wheel"], 0, 0, User.Default.ScrollWheelSpeed, 0);
+                case "VWheel":
+                    mouse_event(KeyCodeCollection.GetKeyCodes()["--Don't Use This Mouse wheel"], 0, 0, User.Default.ScrollWheelSpeed * aStrength, 0);
                     break;
-                case "SWheelDOWN":
-                    mouse_event(KeyCodeCollection.GetKeyCodes()["--Don't Use This Mouse wheel"], 0, 0, -User.Default.ScrollWheelSpeed, 0);
+                case "HWheel":
+                    mouse_event(KeyCodeCollection.GetKeyCodes()["--Don't Use This Mouse hwheel"], 0, 0, User.Default.ScrollWheelSpeed * aStrength, 0);
                     break;
                 case "Toggle":
                     if (input != Settings.Default._CurrentInput)
@@ -310,61 +310,102 @@ namespace GearVR_Controller
                 HandleButtonUp("_VolDownBtn");
             }
         }
+
+
+        bool iTrackingTouch = false;
+
         private void TrackPad()
         {
-            sensorData.WheelPos = FwheelPos(sensorData.AxisX, sensorData.AxisY);
-            sensorData.Delta_X = sensorData.AxisX - sensorData._AxisX;
-            sensorData.Delta_Y = sensorData.AxisY - sensorData._AxisY;
-            sensorData.Delta_X = (int)Math.Round(sensorData.Delta_X * 1.2);
-            sensorData.Delta_Y = (int)Math.Round(sensorData.Delta_Y * 1.2);
-
-            if (Settings.Default._UseWheel)
-            {
-                if (Math.Abs(sensorData._WheelPos - sensorData.WheelPos) > 1
-                    && Math.Abs((sensorData._WheelPos + 1) % User.Default.ScrollWheelSeg - (sensorData.WheelPos + 1) % User.Default.ScrollWheelSeg) > 1)
-                {
-                    sensorData._WheelPos = sensorData.WheelPos;
-                    return;
-                }
-                if ((sensorData._WheelPos - sensorData.WheelPos) == 1
-                    || ((sensorData._WheelPos + 1) % User.Default.ScrollWheelSeg - (sensorData.WheelPos + 1) % User.Default.ScrollWheelSeg) == 1)
-                {
-                    sensorData._WheelPos = sensorData.WheelPos;
-                    SendInput("SWheelUP");
-                    return;
-                }
-                if ((sensorData.WheelPos - sensorData._WheelPos) == 1
-                    || ((sensorData.WheelPos + 1) % User.Default.ScrollWheelSeg - (sensorData._WheelPos + 1) % User.Default.ScrollWheelSeg) == 1)
-                {
-                    sensorData._WheelPos = sensorData.WheelPos;
-                    SendInput("SWheelDOWN");
-                    return;
-                }
-                return;
-            }
-
             if (sensorData.AxisX == 0 && sensorData.AxisY == 0)
             {
-                Settings.Default._Reset = true;
+                // No finger on our trackpad, nothing for us to do here
+                iTrackingTouch = false;
                 return;
             }
 
-            if (Settings.Default._Reset)
+            if (!iTrackingTouch)
             {
-                Settings.Default._Reset = false;
+                // Tracking just started
+                iTrackingTouch = true;
+                // Mark our tracking start position
                 sensorData._AxisX = sensorData.AxisX;
                 sensorData._AxisY = sensorData.AxisY;
-                sensorData._AltX = sensorData.GyroX;
-                sensorData._AltY = sensorData.GyroY;
+                // Still nothing to do here until finger moves
                 return;
             }
 
-            mouse_event(0x0001, sensorData.Delta_X, sensorData.Delta_Y, 0, 0);
+            // Finger was moved, compute our deltas
+            sensorData.Delta_X = sensorData.AxisX - sensorData._AxisX;
+            sensorData.Delta_Y = sensorData.AxisY - sensorData._AxisY;
+            //
+            int absDeltaX = Math.Abs(sensorData.Delta_X);
+            int absDeltaY = Math.Abs(sensorData.Delta_Y);
 
-            sensorData._AxisX = sensorData.AxisX;
-            sensorData._AxisY = sensorData.AxisY;
-            sensorData._AltX = sensorData.GyroX;
-            sensorData._AltY = sensorData.GyroY;
+            // Wheel trigger thresholds are intended to provide stability and avoid bounce back
+            // TODO: Put them in settings I guess
+            const int KWheelThresholdX = 10; // Horizontal
+            const int KWheelThresholdY = 10; // Vertical
+            const int KMouseThreshold = 20;
+            const double KMouseAcceleration = 0.1;
+
+            bool consumedX = false;
+            bool consumedY = false;
+
+            if (Settings.Default._UseWheel)
+            {   
+                if ((absDeltaX > KWheelThresholdX) 
+                    // We either scroll vertically or horizontally not both
+                    && absDeltaX > absDeltaY)
+                {
+                    SendInput("HWheel", sensorData.Delta_X);
+                    consumedX = true;
+                    consumedY = true;
+                }
+
+                if ((absDeltaY > KWheelThresholdY)
+                    // We either scroll vertically or horizontally not both
+                    && absDeltaY > absDeltaX)
+                {
+                    SendInput("VWheel", sensorData.Delta_Y);
+                    consumedX = true;
+                    consumedY = true;
+                }
+            }
+            else
+            {
+                consumedX = true;
+                consumedY = true;
+                // Mouse pointer mouve
+                int offsetX = sensorData.Delta_X;
+                int offsetY = sensorData.Delta_Y;
+                if (absDeltaX > KMouseThreshold)
+                {
+                    offsetX *= (int)Math.Round(absDeltaX * KMouseAcceleration);
+                    //Debug.Print("AccX");
+                }
+
+                if (absDeltaY > KMouseThreshold)
+                {
+                    offsetY *= (int)Math.Round(absDeltaY * KMouseAcceleration);
+                    //Debug.Print("AccY");
+                }
+
+                if (offsetX != 0 || offsetY != 0)
+                {
+                    mouse_event(0x0001, offsetX, offsetY, 0, 0);
+                }                
+            }
+            
+            // Mark our last positions if needed
+            if (consumedX)
+            {
+                sensorData._AxisX = sensorData.AxisX;                
+            }
+
+            if (consumedY)
+            {
+                sensorData._AxisY = sensorData.AxisY;
+            }
         }
 
         public static readonly Guid guid_controller_service = Guid.Parse(Settings.Default._Service);
@@ -380,6 +421,8 @@ namespace GearVR_Controller
 
         [DllImport("user32.dll")]
         static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, int dwExtraInfo);
+
+
         private static int FwheelPos(int x, int y)
         {
             int pos;

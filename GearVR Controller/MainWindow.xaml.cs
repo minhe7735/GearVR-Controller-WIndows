@@ -1,6 +1,7 @@
 ﻿using Hardcodet.Wpf.TaskbarNotification;
 using System.Windows;
 using System;
+using System.IO;
 
 namespace GearVR_Controller
 {
@@ -17,6 +18,26 @@ namespace GearVR_Controller
 
             this.StateChanged += new EventHandler(Window_StateChanged);
         }
+
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            // Connect on start-up if needed
+            if (User.Default.AutoConnect)
+            {
+                MainProgram gvrc = MainProgram.GetInstance();
+                gvrc.Pair_Connect();
+            }
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            // Save user settings on exit
+            User.Default.Save();
+        }
+
+
+
         void Window_StateChanged(object sender, EventArgs e)
         {
             switch (this.WindowState)
@@ -26,7 +47,8 @@ namespace GearVR_Controller
                 case WindowState.Minimized:
                     Application.Current.MainWindow.Hide();
                     TaskbarIcon tray = new();
-                    tray.Icon = new System.Drawing.Icon("C:/Users/mh773/source/repos/GearVR Controller/GearVR Controller/logo.ico");
+                    string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.ico");
+                    tray.Icon = new System.Drawing.Icon(iconPath);
                     tray.ToolTipText = "GVR Controller";
                     tray.TrayMouseDoubleClick += (s, e) =>
                     {

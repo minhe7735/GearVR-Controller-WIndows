@@ -174,7 +174,8 @@ namespace GearVR_Controller
                 { "--Don't Use This Mouse middle button UP", 0x0040 },
                 { "--Don't Use This X DOWN", 0x0080 },
                 { "--Don't Use This X UP", 0x0100 },
-                { "--Don't Use This Mouse wheel", 0x0800 }
+                { "--Don't Use This Mouse wheel", 0x0800 },
+                { "--Don't Use This Mouse hwheel", 0x1000 }
 
             };
             return keyCode;
