@@ -175,7 +175,8 @@ namespace GearVR_Controller
                 { "--Don't Use This X DOWN", 0x0080 },
                 { "--Don't Use This X UP", 0x0100 },
                 { "--Don't Use This Mouse wheel", 0x0800 },
-                { "--Don't Use This Mouse hwheel", 0x1000 }
+                { "--Don't Use This Mouse hwheel", 0x1000 },
+                { "CTRL Z", 0x11 0x5A }
 
             };
             return keyCode;
