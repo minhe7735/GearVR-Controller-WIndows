@@ -116,6 +116,18 @@ namespace GearVR_Controller
         private void TouchpadButton()
         {
             if (Settings.Default._TouchpadButton
+                //When there is no touch input the position reads -314 and 0
+                && ((sensorData.ShiftedX == -314
+                && sensorData.ShiftedY == 0
+                && Settings.Default._TchBtn)
+                || (Settings.Default._CurrentInput == User.Default.TouchLeftButton
+                && TimePassed()
+                && !User.Default.TouchLeftButton.StartsWith("Mouse")
+                )))
+            {
+                HandleButtonUp("_TchBtn");
+            }
+            else if (Settings.Default._TouchpadButton
                     && ((Math.Pow(sensorData.AxisX - 157, 2) + Math.Pow(sensorData.AxisY - 157, 2) <= 6400
                     && Settings.Default._TchBtn)
                     || (Settings.Default._CurrentInput == User.Default.TouchMidButton
@@ -138,8 +150,8 @@ namespace GearVR_Controller
             }
             else if (Settings.Default._TouchpadButton
                 && ((sensorData.ShiftedX > 0
-                && sensorData.ShiftedY <=
-                0 && Settings.Default._TchBtn)
+                && sensorData.ShiftedY <= 0
+                && Settings.Default._TchBtn)
                 || (Settings.Default._CurrentInput == User.Default.TouchRightButton
                 && TimePassed()
                 && !User.Default.TouchRightButton.StartsWith("Mouse")
