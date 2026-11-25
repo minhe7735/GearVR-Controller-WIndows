@@ -494,7 +494,7 @@ namespace GearVR_Controller
             {
                 System.Diagnostics.Debug.WriteLine(ex);
                 ConnectionMessage.Text = reconnectEnabled && (User.Default.AutoConnect || wakeRetryEnabled)
-                    ? "Mando no disponible. Volveremos a intentarlo autom\u00e1ticamente."
+                    ? "No se pudo conectar: " + ex.Message + " Se volvera a intentar."
                     : "No se pudo conectar: " + ex.Message;
             }
             finally
