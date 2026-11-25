@@ -25,6 +25,13 @@ namespace GearVR_Controller {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool IdleWakeReconnect {
+            get { return ((bool)(this["IdleWakeReconnect"])); }
+            set { this["IdleWakeReconnect"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool IdleDisconnect {
             get { return ((bool)(this["IdleDisconnect"])); }
             set { this["IdleDisconnect"] = value; }

@@ -25,6 +25,8 @@ namespace GearVR_Controller
         private readonly MenuItem trayDisconnect;
         private CancellationTokenSource connectionAttempt;
         private CancellationTokenSource discoveryAttempt;
+        private WakeDetector wakeDetector;
+        private bool wakeRetryEnabled;
         private bool reconnectEnabled;
         private bool exiting;
         private bool startupReady;
@@ -76,8 +78,8 @@ namespace GearVR_Controller
             reconnectTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
             reconnectTimer.Tick += async (s, e) =>
             {
-                if (Settings.Default._Connected && connectionAttempt == null) ConnectionMessage.Text = "Mando conectado.";
-                if (reconnectEnabled && User.Default.AutoConnect && !Settings.Default._Connected && connectionAttempt == null && discoveryAttempt == null)
+                if (Settings.Default._Connected && connectionAttempt == null) { ConnectionMessage.Text = "Mando conectado."; wakeRetryEnabled = false; }
+                if (reconnectEnabled && (User.Default.AutoConnect || wakeRetryEnabled) && !Settings.Default._Connected && connectionAttempt == null && discoveryAttempt == null)
                 {
                     if (string.IsNullOrWhiteSpace(User.Default.MACAddressText) && DetectedDevices.Visibility != Visibility.Visible)
                         await DetectControllersAsync(false);
@@ -94,8 +96,10 @@ namespace GearVR_Controller
                 if (MainProgram.GetInstance().DisconnectIfIdle(TimeSpan.FromMinutes(minutes)))
                 {
                     reconnectEnabled = false;
+                    wakeRetryEnabled = false;
                     connectionAttempt?.Cancel();
-                    ConnectionMessage.Text = "Desconectado por inactividad. Pulsa Conectar para reanudar.";
+                    if (User.Default.IdleWakeReconnect) StartWakeMonitoring();
+                    else ConnectionMessage.Text = "Desconectado por inactividad. Pulsa Conectar para reanudar.";
                 }
             };
             idleTimer.Start();
@@ -111,8 +115,8 @@ namespace GearVR_Controller
             string state = Settings.Default._Connected ? "Conectado" : ConnectionMessage.Text;
             trayStatus.Header = "Estado: " + state;
             trayConnect.IsEnabled = connectionAttempt == null && !Settings.Default._Connected;
-            trayDisconnect.IsEnabled = Settings.Default._Connected || connectionAttempt != null ||
-                                       (reconnectEnabled && User.Default.AutoConnect);
+            trayDisconnect.IsEnabled = Settings.Default._Connected || connectionAttempt != null || wakeDetector != null ||
+                                       (reconnectEnabled && (User.Default.AutoConnect || wakeRetryEnabled));
         }
 
         private void ShowWindow()
@@ -141,6 +145,8 @@ namespace GearVR_Controller
                 return;
             }
             reconnectEnabled = false;
+            wakeRetryEnabled = false;
+            StopWakeMonitoring();
             connectionAttempt?.Cancel();
             discoveryAttempt?.Cancel();
             reconnectTimer.Stop();
@@ -179,12 +185,80 @@ namespace GearVR_Controller
             }
         }
 
+        private void StopWakeMonitoring()
+        {
+            var detector = wakeDetector;
+            wakeDetector = null;
+            detector?.Dispose();
+        }
+
+        private void StartWakeMonitoring()
+        {
+            StopWakeMonitoring();
+            string hex = (User.Default.MACAddressText ?? "").Replace(":", "").Replace("-", "").Trim();
+            if (hex.Length != 12 || !ulong.TryParse(hex, System.Globalization.NumberStyles.HexNumber,
+                    System.Globalization.CultureInfo.InvariantCulture, out ulong address))
+            {
+                ConnectionMessage.Text = "Direccion Bluetooth invalida. Pulsa Conectar para reanudar.";
+                return;
+            }
+            try
+            {
+                var detector = new WakeDetector(address);
+                wakeDetector = detector;
+                detector.Ready += () => Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (ReferenceEquals(wakeDetector, detector))
+                        ConnectionMessage.Text = "En espera. Pulsa un boton del mando para reconectar.";
+                }));
+                detector.Awakened += () => Dispatcher.BeginInvoke(new Action(async () =>
+                {
+                    if (!ReferenceEquals(wakeDetector, detector)) return;
+                    StopWakeMonitoring();
+                    reconnectEnabled = true;
+                    wakeRetryEnabled = true;
+                    ConnectionMessage.Text = "Mando despierto. Reconectando...";
+                    await ConnectAsync();
+                }));
+                detector.Failed += error => Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (!ReferenceEquals(wakeDetector, detector)) return;
+                    StopWakeMonitoring();
+                    ConnectionMessage.Text = "No se puede detectar el despertar Bluetooth: " + error;
+                }));
+                ConnectionMessage.Text = "Desconectado por inactividad. Esperando reposo del mando...";
+                detector.Start();
+            }
+            catch (Exception ex)
+            {
+                StopWakeMonitoring();
+                ConnectionMessage.Text = "No se puede detectar el despertar Bluetooth: " + ex.Message;
+            }
+        }
+
+        private void IdleWakeReconnect_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            User.Default.IdleWakeReconnect = IdleWakeReconnectCheckBox.IsChecked == true;
+            User.Default.Save();
+            if (!User.Default.IdleWakeReconnect && wakeDetector != null)
+            {
+                StopWakeMonitoring();
+                ConnectionMessage.Text = "Desconectado. Pulsa Conectar para reanudar.";
+            }
+        }
+
         private void IdleDisconnect_Changed(object sender, RoutedEventArgs e)
         {
             if (!IsLoaded) return;
             User.Default.IdleDisconnect = IdleDisconnectCheckBox.IsChecked == true;
             User.Default.Save();
             if (User.Default.IdleDisconnect) MainProgram.GetInstance().ResetIdleTimer();
+            else if (wakeDetector != null)
+            {
+                StopWakeMonitoring();
+                ConnectionMessage.Text = "Desconectado. Pulsa Conectar para reanudar.";
+            }
         }
 
         private void SaveIdleTimeout()
@@ -388,6 +462,8 @@ namespace GearVR_Controller
 
         private async void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
+            StopWakeMonitoring();
+            wakeRetryEnabled = false;
             if (string.IsNullOrWhiteSpace(User.Default.MACAddressText)) await DetectControllersAsync(true);
             if (string.IsNullOrWhiteSpace(User.Default.MACAddressText)) return;
             User.Default.Save();
@@ -410,14 +486,14 @@ namespace GearVR_Controller
             }
             catch (OperationCanceledException)
             {
-                ConnectionMessage.Text = !reconnectEnabled ? "Desconectado." : User.Default.AutoConnect
+                ConnectionMessage.Text = !reconnectEnabled ? "Desconectado." : (User.Default.AutoConnect || wakeRetryEnabled)
                     ? "Sin respuesta. Volveremos a intentarlo automaticamente."
                     : "Sin respuesta. Despierta el mando y vuelve a intentar.";
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine(ex);
-                ConnectionMessage.Text = reconnectEnabled && User.Default.AutoConnect
+                ConnectionMessage.Text = reconnectEnabled && (User.Default.AutoConnect || wakeRetryEnabled)
                     ? "Mando no disponible. Volveremos a intentarlo autom\u00e1ticamente."
                     : "No se pudo conectar: " + ex.Message;
             }
@@ -431,6 +507,8 @@ namespace GearVR_Controller
         private void PowerOffButton_Click(object sender, RoutedEventArgs e)
         {
             reconnectEnabled = false;
+            wakeRetryEnabled = false;
+            StopWakeMonitoring();
             connectionAttempt?.Cancel();
             MainProgram.GetInstance().Disconnect();
             ConnectionMessage.Text = "Desconectado.";
@@ -442,7 +520,12 @@ namespace GearVR_Controller
             User.Default.AutoConnect = CheckBoxAutoConnect.IsChecked == true;
             User.Default.Save();
             reconnectEnabled = User.Default.AutoConnect;
-            if (reconnectEnabled && !Settings.Default._Connected) await ConnectAsync();
+            if (reconnectEnabled && !Settings.Default._Connected)
+            {
+                StopWakeMonitoring();
+                wakeRetryEnabled = false;
+                await ConnectAsync();
+            }
         }
 
         private void MotionPointerCheckBox_Changed(object sender, RoutedEventArgs e)
