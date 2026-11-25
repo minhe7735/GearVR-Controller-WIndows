@@ -1,4 +1,4 @@
-﻿# Gear VR Controller for Windows
+# Gear VR Controller for Windows
 
 Use a Samsung Gear VR Controller as a mouse and remap its buttons on Windows. The application connects over Bluetooth Low Energy (BLE), supports motion aiming and touchpad controls, and can remain in the Windows notification area.
 
@@ -26,6 +26,10 @@ The pointer can reach the full Windows virtual desktop, including monitors to th
 
 Uncheck **Activar apuntado con giroscopio** to move the pointer with the touchpad instead. Touchpad button mappings and scroll mode remain available while motion aiming is enabled.
 
+## Idle disconnect
+
+**Desconectar por inactividad** is enabled by default and disconnects after 5 minutes without meaningful controller rotation, acceleration, touchpad contact, or button input. Set the timeout to any whole number from 1 to 1440 minutes, or disable the option. The app ignores ordinary sensor noise and BLE packets when determining activity. After an idle disconnect it pauses automatic reconnection until you select **Conectar**; the automatic connection preference is retained for future launches. Disconnecting releases the application's Bluetooth session, but does not guarantee when Windows or the controller will enter its own low-power mode.
+
 ## Button mappings
 
 The diagrams show the five touchpad regions, five combinations of a touched region plus the trigger, and the other physical buttons. Select a region or button to edit its assignment; hover over it to see the current assignment. The trigger's own mapping is used when the touchpad is not touched.
@@ -35,7 +39,7 @@ The editor accepts keys from its list, mouse buttons, `Toggle`, or `Launch: <pat
 ## Startup and tray
 
 - Enable **Iniciar con Windows, minimizado** to start the app in the notification area when you sign in. Enable the separate automatic connection option if you also want it to connect to the controller.
-- Closing or minimizing the window keeps the app running in the notification area. Double-click its icon to reopen it; right-click and choose **Salir** to quit and disconnect.
+- Closing or minimizing the window keeps the app running in the notification area. Double-click its icon to reopen it; right-click to see connection status, connect or disconnect, or choose **Salir** to quit.
 - If you move the executable, re-enable Windows startup from the new location. Windows user settings can also be stored separately for different executable locations.
 
 ## Build

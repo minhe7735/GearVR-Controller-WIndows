@@ -35,6 +35,22 @@ namespace GearVR_Controller
         int connectionGeneration;
         long lastPacketTimestamp;
         readonly MotionPointer motion = new();
+        readonly IdleActivity activity = new();
+
+        public void ResetIdleTimer()
+        {
+            lock (inputLock) activity.Reset(Stopwatch.GetTimestamp());
+        }
+
+        public bool DisconnectIfIdle(TimeSpan timeout)
+        {
+            lock (inputLock)
+            {
+                if (!Settings.Default._Connected || !activity.IsIdle(Stopwatch.GetTimestamp(), Stopwatch.Frequency, timeout)) return false;
+                Disconnect();
+                return true;
+            }
+        }
         long homePressedAt;
         bool homeHeld;
         bool homeRecentered;
@@ -168,7 +184,7 @@ namespace GearVR_Controller
                 if ((Stopwatch.GetTimestamp() - lastPacketTimestamp) * 1000.0 / Stopwatch.Frequency < Settings.Default._TimeOut) return;
                 ReleaseAllInputs();
                 iTrackingTouch = false;
-                motion.Reset(); homeHeld = false; homeRecentered = false; pointerPending = false; lastPointerTick = 0;
+                motion.Reset(); activity.Stop(); homeHeld = false; homeRecentered = false; pointerPending = false; lastPointerTick = 0;
                 SetStatus(false);
             }
         }
@@ -400,6 +416,10 @@ namespace GearVR_Controller
 
                 sensorData.AxisX = (((byte_values[54] & 0xF) << 6) + ((byte_values[55] & 0xFC) >> 2)) & 0x3FF;
                 sensorData.AxisY = (((byte_values[55] & 0x3) << 8) + ((byte_values[56] & 0xFF) >> 0)) & 0x3FF;
+                activity.Observe(lastPacketTimestamp,
+                    new Vector3(ReadSensor(byte_values, 4), ReadSensor(byte_values, 6), ReadSensor(byte_values, 8)),
+                    new Vector3(ReadSensor(byte_values, 10), ReadSensor(byte_values, 12), ReadSensor(byte_values, 14)),
+                    (byte_values[58] & 0x3f) != 0, sensorData.AxisX != 0 || sensorData.AxisY != 0);
                 if (User.Default.Accel)
                 {
                     sensorData.AccelX = (int)(ReadSensor(byte_values, 4) * 10000.0 * 9.80665 / 2048.0);
@@ -452,7 +472,7 @@ namespace GearVR_Controller
                     notify_characteristic.ValueChanged -= SelectedCharacteristic_ValueChanged;
                 ReleaseAllInputs();
                 iTrackingTouch = false;
-                motion.Reset(); homeHeld = false; homeRecentered = false; pointerPending = false; lastPointerTick = 0;
+                motion.Reset(); activity.Stop(); homeHeld = false; homeRecentered = false; pointerPending = false; lastPointerTick = 0;
                 SetStatus(false);
                 notify_characteristic?.Service?.Dispose();
                 notify_characteristic = null;
@@ -485,7 +505,7 @@ namespace GearVR_Controller
                     if (notify_characteristic != null) notify_characteristic.ValueChanged -= SelectedCharacteristic_ValueChanged;
                     ReleaseAllInputs();
                     iTrackingTouch = false;
-                    motion.Reset(); homeHeld = false; homeRecentered = false; pointerPending = false; lastPointerTick = 0;
+                    motion.Reset(); activity.Stop(); homeHeld = false; homeRecentered = false; pointerPending = false; lastPointerTick = 0;
                     SetStatus(false);
                     notify_characteristic?.Service?.Dispose();
                     device?.Dispose();

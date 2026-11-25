@@ -24,6 +24,20 @@ namespace GearVR_Controller {
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool IdleDisconnect {
+            get { return ((bool)(this["IdleDisconnect"])); }
+            set { this["IdleDisconnect"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("5")]
+        public int IdleTimeoutMinutes {
+            get { return ((int)(this["IdleTimeoutMinutes"])); }
+            set { this["IdleTimeoutMinutes"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("1")]
         public double MotionSensitivity {
             get { return ((double)(this["MotionSensitivity"])); }

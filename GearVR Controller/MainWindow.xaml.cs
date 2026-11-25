@@ -3,6 +3,7 @@ using System.Windows;
 using System;
 using System.IO;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Threading;
 using Microsoft.Win32;
 using System.Threading;
@@ -18,6 +19,10 @@ namespace GearVR_Controller
         private readonly TaskbarIcon tray;
         private readonly DispatcherTimer pointerTimer;
         private readonly DispatcherTimer reconnectTimer;
+        private readonly DispatcherTimer idleTimer;
+        private readonly MenuItem trayStatus;
+        private readonly MenuItem trayConnect;
+        private readonly MenuItem trayDisconnect;
         private CancellationTokenSource connectionAttempt;
         private CancellationTokenSource discoveryAttempt;
         private bool reconnectEnabled;
@@ -30,18 +35,34 @@ namespace GearVR_Controller
         {
             InitializeComponent();
             DataContext = SensorData.GetInstance();
+            IdleTimeoutText.Text = Math.Clamp(User.Default.IdleTimeoutMinutes, 1, 1440).ToString();
             tray = new TaskbarIcon
             {
                 Icon = new System.Drawing.Icon(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.ico")),
                 ToolTipText = "Gear VR Controller"
             };
             var menu = new ContextMenu();
+            trayStatus = new MenuItem { Header = "Estado: Desconectado", IsEnabled = false };
+            trayConnect = new MenuItem { Header = "Conectar" };
+            trayConnect.Click += (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(User.Default.MACAddressText)) ShowWindow();
+                ConnectButton_Click(s, e);
+            };
+            trayDisconnect = new MenuItem { Header = "Desconectar" };
+            trayDisconnect.Click += PowerOffButton_Click;
             var show = new MenuItem { Header = "Abrir" };
             show.Click += (s, e) => ShowWindow();
             var exit = new MenuItem { Header = "Salir" };
             exit.Click += (s, e) => { exiting = true; Close(); };
+            menu.Items.Add(trayStatus);
+            menu.Items.Add(new Separator());
+            menu.Items.Add(trayConnect);
+            menu.Items.Add(trayDisconnect);
+            menu.Items.Add(new Separator());
             menu.Items.Add(show);
             menu.Items.Add(exit);
+            menu.Opened += (s, e) => UpdateTrayMenu();
             tray.ContextMenu = menu;
             tray.TrayMouseDoubleClick += (s, e) => ShowWindow();
             StateChanged += Window_StateChanged;
@@ -64,11 +85,34 @@ namespace GearVR_Controller
                 }
             };
             reconnectTimer.Start();
+            idleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            idleTimer.Tick += (s, e) =>
+            {
+                UpdateTrayMenu();
+                if (!User.Default.IdleDisconnect) return;
+                int minutes = Math.Clamp(User.Default.IdleTimeoutMinutes, 1, 1440);
+                if (MainProgram.GetInstance().DisconnectIfIdle(TimeSpan.FromMinutes(minutes)))
+                {
+                    reconnectEnabled = false;
+                    connectionAttempt?.Cancel();
+                    ConnectionMessage.Text = "Desconectado por inactividad. Pulsa Conectar para reanudar.";
+                }
+            };
+            idleTimer.Start();
             if (Array.Exists(Environment.GetCommandLineArgs(), arg => arg == "--startup"))
             {
                 WindowState = WindowState.Minimized;
                 ShowInTaskbar = false;
             }
+        }
+
+        private void UpdateTrayMenu()
+        {
+            string state = Settings.Default._Connected ? "Conectado" : ConnectionMessage.Text;
+            trayStatus.Header = "Estado: " + state;
+            trayConnect.IsEnabled = connectionAttempt == null && !Settings.Default._Connected;
+            trayDisconnect.IsEnabled = Settings.Default._Connected || connectionAttempt != null ||
+                                       (reconnectEnabled && User.Default.AutoConnect);
         }
 
         private void ShowWindow()
@@ -100,6 +144,7 @@ namespace GearVR_Controller
             connectionAttempt?.Cancel();
             discoveryAttempt?.Cancel();
             reconnectTimer.Stop();
+            idleTimer.Stop();
             pointerTimer.Stop();
             User.Default.Save();
             MainProgram.GetInstance().Disconnect();
@@ -132,6 +177,41 @@ namespace GearVR_Controller
                 startupReady = true;
                 MessageBox.Show(this, ex.Message, "Inicio con Windows", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
+        }
+
+        private void IdleDisconnect_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            User.Default.IdleDisconnect = IdleDisconnectCheckBox.IsChecked == true;
+            User.Default.Save();
+            if (User.Default.IdleDisconnect) MainProgram.GetInstance().ResetIdleTimer();
+        }
+
+        private void SaveIdleTimeout()
+        {
+            if (int.TryParse(IdleTimeoutText.Text, out int minutes) && minutes >= 1 && minutes <= 1440)
+            {
+                User.Default.IdleTimeoutMinutes = minutes;
+                User.Default.Save();
+                IdleTimeoutText.Text = minutes.ToString();
+            }
+            else
+            {
+                IdleTimeoutText.Text = Math.Clamp(User.Default.IdleTimeoutMinutes, 1, 1440).ToString();
+                ConnectionMessage.Text = "Introduce un tiempo entre 1 y 1440 minutos.";
+            }
+        }
+
+        private void IdleTimeoutText_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (IsLoaded) SaveIdleTimeout();
+        }
+
+        private void IdleTimeoutText_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != System.Windows.Input.Key.Enter) return;
+            SaveIdleTimeout();
+            e.Handled = true;
         }
 
         private void SensitivitySlider_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)

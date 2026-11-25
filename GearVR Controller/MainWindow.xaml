@@ -40,6 +40,14 @@
             <CheckBox x:Name="CheckBoxAutoConnect" Checked="AutoConnect_Changed" Unchecked="AutoConnect_Changed" IsChecked="{Binding Source={x:Static local:User.Default}, Path=AutoConnect, Mode=TwoWay}" Content="Conectar y reconectar autom&#225;ticamente"/>
             <TextBlock x:Name="ConnectionMessage" Text="Desconectado." Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,2"/>
             <CheckBox x:Name="StartupCheckBox" Content="Iniciar con Windows, minimizado" Checked="StartupCheckBox_Changed" Unchecked="StartupCheckBox_Changed"/>
+            <CheckBox x:Name="IdleDisconnectCheckBox" IsChecked="{Binding Source={x:Static local:User.Default}, Path=IdleDisconnect, Mode=TwoWay}" Content="Desconectar por inactividad" Checked="IdleDisconnect_Changed" Unchecked="IdleDisconnect_Changed"/>
+            <StackPanel Orientation="Horizontal" Margin="0,2,0,0" IsEnabled="{Binding IsChecked, ElementName=IdleDisconnectCheckBox}">
+              <TextBlock Text="Desconectar despu&#233;s de" VerticalAlignment="Center" Margin="0,0,8,0"/>
+              <TextBox x:Name="IdleTimeoutText" Width="54" Padding="6,4" LostFocus="IdleTimeoutText_LostFocus" KeyDown="IdleTimeoutText_KeyDown" ToolTip="Escribe un n&#250;mero de 1 a 1440 minutos"/>
+              <TextBlock Text="minutos" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </StackPanel>
+            <TextBlock Text="Tras desconectar por inactividad, pulsa Conectar para volver a usar el mando." Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+
           </StackPanel>
         </Border>
         <Border Style="{StaticResource Card}" Grid.Row="1" Grid.Column="2">

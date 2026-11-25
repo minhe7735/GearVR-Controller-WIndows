@@ -1,6 +1,9 @@
-﻿# Changelog
+# Changelog
 
 ## Unreleased
+
+- Add configurable idle disconnect and pause automatic reconnect until the user connects again.
+- Show connection status and connect/disconnect actions in the notification-area menu.
 
 - Rework BLE initialization and cleanup; add bounded connection attempts and optional automatic reconnection.
 - Detect known and nearby Gear VR Controllers and allow selection when more than one is found.
