@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Add configurable idle disconnect and pause automatic reconnect until the user connects again.
+- Add configurable idle disconnect based on buttons and touchpad contact; pause automatic reconnect until the user connects again.
 - Show connection status and connect/disconnect actions in the notification-area menu.
 
 - Rework BLE initialization and cleanup; add bounded connection attempts and optional automatic reconnection.

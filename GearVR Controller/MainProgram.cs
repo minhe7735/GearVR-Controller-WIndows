@@ -417,8 +417,6 @@ namespace GearVR_Controller
                 sensorData.AxisX = (((byte_values[54] & 0xF) << 6) + ((byte_values[55] & 0xFC) >> 2)) & 0x3FF;
                 sensorData.AxisY = (((byte_values[55] & 0x3) << 8) + ((byte_values[56] & 0xFF) >> 0)) & 0x3FF;
                 activity.Observe(lastPacketTimestamp,
-                    new Vector3(ReadSensor(byte_values, 4), ReadSensor(byte_values, 6), ReadSensor(byte_values, 8)),
-                    new Vector3(ReadSensor(byte_values, 10), ReadSensor(byte_values, 12), ReadSensor(byte_values, 14)),
                     (byte_values[58] & 0x3f) != 0, sensorData.AxisX != 0 || sensorData.AxisY != 0);
                 if (User.Default.Accel)
                 {

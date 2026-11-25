@@ -46,6 +46,7 @@
               <TextBox x:Name="IdleTimeoutText" Width="54" Padding="6,4" LostFocus="IdleTimeoutText_LostFocus" KeyDown="IdleTimeoutText_KeyDown" ToolTip="Escribe un n&#250;mero de 1 a 1440 minutos"/>
               <TextBlock Text="minutos" VerticalAlignment="Center" Margin="8,0,0,0"/>
             </StackPanel>
+            <TextBlock Text="Solo los botones y el touchpad reinician el tiempo; mover el mando no lo hace." Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
             <TextBlock Text="Tras desconectar por inactividad, pulsa Conectar para volver a usar el mando." Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
 
           </StackPanel>

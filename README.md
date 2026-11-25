@@ -28,7 +28,7 @@ Uncheck **Activar apuntado con giroscopio** to move the pointer with the touchpa
 
 ## Idle disconnect
 
-**Desconectar por inactividad** is enabled by default and disconnects after 5 minutes without meaningful controller rotation, acceleration, touchpad contact, or button input. Set the timeout to any whole number from 1 to 1440 minutes, or disable the option. The app ignores ordinary sensor noise and BLE packets when determining activity. After an idle disconnect it pauses automatic reconnection until you select **Conectar**; the automatic connection preference is retained for future launches. Disconnecting releases the application's Bluetooth session, but does not guarantee when Windows or the controller will enter its own low-power mode.
+**Desconectar por inactividad** is enabled by default and disconnects after 5 minutes without touchpad contact or button input. Set the timeout to any whole number from 1 to 1440 minutes, or disable the option. Motion, accelerometer and gyroscope readings, and incoming BLE packets do not count as activity. The timeout can therefore expire while moving the pointer if no button or touchpad input occurs. After an idle disconnect it pauses automatic reconnection until you select **Conectar**; the automatic connection preference is retained for future launches. Disconnecting releases the application's Bluetooth session, but does not guarantee when Windows or the controller will enter its own low-power mode.
 
 ## Button mappings
 
