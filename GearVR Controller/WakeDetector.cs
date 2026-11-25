@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Threading;
 using Windows.Devices.Bluetooth.Advertisement;
 
@@ -17,10 +17,10 @@ namespace GearVR_Controller
         public event Action Awakened;
         public event Action<string> Failed;
 
-        public WakeDetector(ulong address)
+        public WakeDetector(ulong address, bool alreadyQuiet = false)
         {
             this.address = address;
-            signal = new WakeSignal(Environment.TickCount64, 10000);
+            signal = new WakeSignal(Environment.TickCount64, 10000, alreadyQuiet);
             watcher = new BluetoothLEAdvertisementWatcher { ScanningMode = BluetoothLEScanningMode.Passive };
             watcher.Received += OnReceived;
             watcher.Stopped += OnStopped;

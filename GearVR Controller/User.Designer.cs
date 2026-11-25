@@ -24,6 +24,13 @@ namespace GearVR_Controller {
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool RestartBluetoothAfterIdle {
+            get { return ((bool)(this["RestartBluetoothAfterIdle"])); }
+            set { this["RestartBluetoothAfterIdle"] = value; }
+        }
+
+        [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("True")]
         public bool IdleWakeReconnect {
             get { return ((bool)(this["IdleWakeReconnect"])); }

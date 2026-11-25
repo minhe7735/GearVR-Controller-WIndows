@@ -8,6 +8,7 @@ using System.Windows.Threading;
 using Microsoft.Win32;
 using System.Threading;
 using System.Threading.Tasks;
+using Windows.Devices.Radios;
 
 namespace GearVR_Controller
 {
@@ -27,6 +28,10 @@ namespace GearVR_Controller
         private CancellationTokenSource discoveryAttempt;
         private WakeDetector wakeDetector;
         private bool wakeRetryEnabled;
+        private bool waitingForWake;
+        private bool radioResetInProgress;
+        private bool exitAfterRadioReset;
+        private bool requestingRadioAccess;
         private bool reconnectEnabled;
         private bool exiting;
         private bool startupReady;
@@ -98,7 +103,7 @@ namespace GearVR_Controller
                     reconnectEnabled = false;
                     wakeRetryEnabled = false;
                     connectionAttempt?.Cancel();
-                    if (User.Default.IdleWakeReconnect) StartWakeMonitoring();
+                    if (User.Default.IdleWakeReconnect) { waitingForWake = true; StartWakeMonitoring(); }
                     else ConnectionMessage.Text = "Desconectado por inactividad. Pulsa Conectar para reanudar.";
                 }
             };
@@ -114,7 +119,7 @@ namespace GearVR_Controller
         {
             string state = Settings.Default._Connected ? "Conectado" : ConnectionMessage.Text;
             trayStatus.Header = "Estado: " + state;
-            trayConnect.IsEnabled = connectionAttempt == null && !Settings.Default._Connected;
+            trayConnect.IsEnabled = !radioResetInProgress && connectionAttempt == null && !Settings.Default._Connected;
             trayDisconnect.IsEnabled = Settings.Default._Connected || connectionAttempt != null || wakeDetector != null ||
                                        (reconnectEnabled && (User.Default.AutoConnect || wakeRetryEnabled));
         }
@@ -137,6 +142,13 @@ namespace GearVR_Controller
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
+            if (exiting && radioResetInProgress)
+            {
+                e.Cancel = true;
+                exitAfterRadioReset = true;
+                ConnectionMessage.Text = "Esperando a restaurar Bluetooth antes de salir...";
+                return;
+            }
             if (!exiting)
             {
                 e.Cancel = true;
@@ -146,6 +158,7 @@ namespace GearVR_Controller
             }
             reconnectEnabled = false;
             wakeRetryEnabled = false;
+            waitingForWake = false;
             StopWakeMonitoring();
             connectionAttempt?.Cancel();
             discoveryAttempt?.Cancel();
@@ -192,7 +205,7 @@ namespace GearVR_Controller
             detector?.Dispose();
         }
 
-        private void StartWakeMonitoring()
+        private void StartWakeMonitoring(bool alreadyQuiet = false)
         {
             StopWakeMonitoring();
             string hex = (User.Default.MACAddressText ?? "").Replace(":", "").Replace("-", "").Trim();
@@ -204,17 +217,48 @@ namespace GearVR_Controller
             }
             try
             {
-                var detector = new WakeDetector(address);
+                var detector = new WakeDetector(address, alreadyQuiet);
                 wakeDetector = detector;
-                detector.Ready += () => Dispatcher.BeginInvoke(new Action(() =>
+                detector.Ready += () => Dispatcher.BeginInvoke(new Action(async () =>
                 {
-                    if (ReferenceEquals(wakeDetector, detector))
+                    if (!ReferenceEquals(wakeDetector, detector) || !waitingForWake) return;
+                    if (!User.Default.RestartBluetoothAfterIdle)
+                    {
                         ConnectionMessage.Text = "En espera. Pulsa un boton del mando para reconectar.";
+                        return;
+                    }
+                    // The controller has been quiet; restart now, matching the successful experiment.
+                    StopWakeMonitoring();
+                    radioResetInProgress = true;
+                    ConnectButton.IsEnabled = false;
+                    ConnectionMessage.Text = "Reiniciando Bluetooth tras inactividad...";
+                    BluetoothRestartResult result;
+                    try { result = await BluetoothRadioRestart.RestartAsync(); }
+                    catch (Exception ex) { result = new BluetoothRestartResult { Message = "No se pudo verificar Bluetooth: " + ex.Message + ". Comprueba su estado en Windows." }; }
+                    finally
+                    {
+                        radioResetInProgress = false;
+                        ConnectButton.IsEnabled = connectionAttempt == null;
+                    }
+                    if (exitAfterRadioReset) { Close(); return; }
+                    if (!waitingForWake) return;
+                    if (!result.RadioOn)
+                    {
+                        waitingForWake = false;
+                        ConnectionMessage.Text = result.Message ?? "Bluetooth no esta disponible. Activalo en Windows.";
+                        return;
+                    }
+                    StartWakeMonitoring(true);
+                    if (wakeDetector != null)
+                        ConnectionMessage.Text = result.Success
+                            ? "Bluetooth reiniciado. Pulsa un boton del mando para reconectar."
+                            : (result.Message ?? "No se pudo reiniciar Bluetooth.") + " Esperando el mando.";
                 }));
                 detector.Awakened += () => Dispatcher.BeginInvoke(new Action(async () =>
                 {
                     if (!ReferenceEquals(wakeDetector, detector)) return;
                     StopWakeMonitoring();
+                    waitingForWake = false;
                     reconnectEnabled = true;
                     wakeRetryEnabled = true;
                     ConnectionMessage.Text = "Mando despierto. Reconectando...";
@@ -224,6 +268,7 @@ namespace GearVR_Controller
                 {
                     if (!ReferenceEquals(wakeDetector, detector)) return;
                     StopWakeMonitoring();
+                    waitingForWake = false;
                     ConnectionMessage.Text = "No se puede detectar el despertar Bluetooth: " + error;
                 }));
                 ConnectionMessage.Text = "Desconectado por inactividad. Esperando reposo del mando...";
@@ -236,13 +281,48 @@ namespace GearVR_Controller
             }
         }
 
+        private async void RestartBluetooth_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            if (RestartBluetoothCheckBox.IsChecked != true)
+            {
+                User.Default.RestartBluetoothAfterIdle = false;
+                User.Default.Save();
+                return;
+            }
+            if (radioResetInProgress || requestingRadioAccess) return;
+            requestingRadioAccess = true;
+            try
+            {
+                var access = await Radio.RequestAccessAsync();
+                if (RestartBluetoothCheckBox.IsChecked != true) return;
+                if (access != RadioAccessStatus.Allowed)
+                {
+                    RestartBluetoothCheckBox.IsChecked = false;
+                    User.Default.RestartBluetoothAfterIdle = false;
+                    MessageBox.Show(this, "Windows no permitio controlar Bluetooth: " + access, "Reinicio de Bluetooth", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                else User.Default.RestartBluetoothAfterIdle = true;
+                User.Default.Save();
+            }
+            catch (Exception ex)
+            {
+                RestartBluetoothCheckBox.IsChecked = false;
+                User.Default.RestartBluetoothAfterIdle = false;
+                User.Default.Save();
+                MessageBox.Show(this, ex.Message, "Reinicio de Bluetooth", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            finally { requestingRadioAccess = false; }
+        }
+
         private void IdleWakeReconnect_Changed(object sender, RoutedEventArgs e)
         {
             if (!IsLoaded) return;
             User.Default.IdleWakeReconnect = IdleWakeReconnectCheckBox.IsChecked == true;
             User.Default.Save();
-            if (!User.Default.IdleWakeReconnect && wakeDetector != null)
+            if (!User.Default.IdleWakeReconnect && waitingForWake)
             {
+                waitingForWake = false;
                 StopWakeMonitoring();
                 ConnectionMessage.Text = "Desconectado. Pulsa Conectar para reanudar.";
             }
@@ -254,8 +334,9 @@ namespace GearVR_Controller
             User.Default.IdleDisconnect = IdleDisconnectCheckBox.IsChecked == true;
             User.Default.Save();
             if (User.Default.IdleDisconnect) MainProgram.GetInstance().ResetIdleTimer();
-            else if (wakeDetector != null)
+            else if (waitingForWake)
             {
+                waitingForWake = false;
                 StopWakeMonitoring();
                 ConnectionMessage.Text = "Desconectado. Pulsa Conectar para reanudar.";
             }
@@ -462,6 +543,8 @@ namespace GearVR_Controller
 
         private async void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
+            if (radioResetInProgress) return;
+            waitingForWake = false;
             StopWakeMonitoring();
             wakeRetryEnabled = false;
             if (string.IsNullOrWhiteSpace(User.Default.MACAddressText)) await DetectControllersAsync(true);
@@ -473,7 +556,7 @@ namespace GearVR_Controller
 
         private async Task ConnectAsync()
         {
-            if (connectionAttempt != null || discoveryAttempt != null || string.IsNullOrWhiteSpace(User.Default.MACAddressText)) return;
+            if (radioResetInProgress || connectionAttempt != null || discoveryAttempt != null || string.IsNullOrWhiteSpace(User.Default.MACAddressText)) return;
             using var attempt = new CancellationTokenSource(TimeSpan.FromSeconds(12));
             connectionAttempt = attempt;
             ConnectButton.IsEnabled = false;
@@ -508,6 +591,7 @@ namespace GearVR_Controller
         {
             reconnectEnabled = false;
             wakeRetryEnabled = false;
+            waitingForWake = false;
             StopWakeMonitoring();
             connectionAttempt?.Cancel();
             MainProgram.GetInstance().Disconnect();

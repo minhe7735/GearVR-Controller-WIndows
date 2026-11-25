@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Add an opt-in Bluetooth radio reset after idle, before wake reconnection.
+
 - Add configurable idle disconnect based on buttons and touchpad contact; optionally listen for the controller to wake and reconnect automatically.
 - Show connection status and connect/disconnect actions in the notification-area menu.
 

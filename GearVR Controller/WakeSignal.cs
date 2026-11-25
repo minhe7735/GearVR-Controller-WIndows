@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace GearVR_Controller
 {
@@ -10,10 +10,11 @@ namespace GearVR_Controller
         private bool armed;
         private bool fired;
 
-        public WakeSignal(long startedAt, long quietPeriodMilliseconds)
+        public WakeSignal(long startedAt, long quietPeriodMilliseconds, bool alreadyQuiet = false)
         {
             lastAdvertisement = startedAt;
             this.quietPeriodMilliseconds = quietPeriodMilliseconds;
+            armed = alreadyQuiet;
         }
 
         public bool CheckQuiet(long now)

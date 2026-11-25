@@ -48,6 +48,10 @@
             </StackPanel>
             <TextBlock Text="Solo los botones y el touchpad reinician el tiempo; mover el mando no lo hace." Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
             <CheckBox x:Name="IdleWakeReconnectCheckBox" IsChecked="{Binding Source={x:Static local:User.Default}, Path=IdleWakeReconnect, Mode=TwoWay}" IsEnabled="{Binding IsChecked, ElementName=IdleDisconnectCheckBox}" Content="Reconectar al despertar el mando" Checked="IdleWakeReconnect_Changed" Unchecked="IdleWakeReconnect_Changed"/>
+            <StackPanel IsEnabled="{Binding IsChecked, ElementName=IdleDisconnectCheckBox}">
+              <CheckBox x:Name="RestartBluetoothCheckBox" IsChecked="{Binding Source={x:Static local:User.Default}, Path=RestartBluetoothAfterIdle, Mode=TwoWay}" IsEnabled="{Binding IsChecked, ElementName=IdleWakeReconnectCheckBox}" Content="Reiniciar Bluetooth tras inactividad (opcional)" Checked="RestartBluetooth_Changed" Unchecked="RestartBluetooth_Changed" ToolTip="Apaga y enciende el adaptador cuando el mando deja de anunciarse. Interrumpe temporalmente todos los dispositivos Bluetooth de ese adaptador."/>
+              <TextBlock Text="Afecta temporalmente a todos los dispositivos Bluetooth del adaptador." Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,4"/>
+            </StackPanel>
             <TextBlock Text="Con la reconexi&#243;n activada, espera al reposo y pulsa un bot&#243;n del mando." Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
 
           </StackPanel>
