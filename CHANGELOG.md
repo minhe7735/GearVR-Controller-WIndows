@@ -14,4 +14,4 @@
 - Redesign the interface with controller diagrams, startup options and notification-area controls.
 - Document setup, limitations and the use of OpenAI Codex for this change set.
 
-Validation: Windows build succeeded; controller discovery was checked against a controller visible to Windows; pointer coordinate mapping was checked using simulated multi-monitor layouts. Physical reconnection, aiming, screen transitions and all buttons require further testing on target hardware.
+Validation: Windows build succeeded; controller discovery was checked against a controller visible to Windows; pointer coordinate mapping was checked using simulated multi-monitor layouts. One automatic idle-disconnect, radio-reset and wake-reconnect cycle succeeded on physical hardware. Repeated reconnection, aiming, screen transitions and all buttons require further testing on target hardware.
