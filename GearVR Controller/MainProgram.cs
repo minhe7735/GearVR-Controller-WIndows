@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
@@ -9,6 +9,10 @@ using Windows.Security.Cryptography;
 using Windows.Storage.Streams;
 using System.Diagnostics;
 using System.Timers;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Globalization;
 
 
 
@@ -19,298 +23,254 @@ namespace GearVR_Controller
         readonly SensorData sensorData = SensorData.GetInstance();
 
         private static readonly MainProgram instance = new();
-        private MainProgram() { }
+        private MainProgram() { OffTimer.Elapsed += OffTimer_Elapsed; }
         public static MainProgram GetInstance() { return instance; }
 
-        readonly Timer OffTimer = new(Settings.Default._TimeOut);
+        readonly System.Timers.Timer OffTimer = new(Settings.Default._TimeOut) { AutoReset = false };
+        readonly object inputLock = new();
+        readonly Dictionary<string, string> activeButtons = new();
+        readonly Dictionary<string, int> activeInputs = new();
+        static readonly Dictionary<string, short> keyCodes = KeyCodeCollection.GetKeyCodes();
+        readonly SemaphoreSlim connectionGate = new(1, 1);
+        int connectionGeneration;
+        long lastPacketTimestamp;
+        readonly MotionPointer motion = new();
+        readonly IdleActivity activity = new();
+
+        public void ResetIdleTimer()
+        {
+            lock (inputLock) activity.Reset(Stopwatch.GetTimestamp());
+        }
+
+        public bool DisconnectIfIdle(TimeSpan timeout)
+        {
+            lock (inputLock)
+            {
+                if (!Settings.Default._Connected || !activity.IsIdle(Stopwatch.GetTimestamp(), Stopwatch.Frequency, timeout)) return false;
+                Disconnect();
+                return true;
+            }
+        }
+        long homePressedAt;
+        bool homeHeld;
+        bool homeRecentered;
+        bool pointerPending;
+        double pointerX, pointerY, targetX, targetY;
+        long lastPointerTick;
+
+        // Called on the UI dispatcher, independently of the Bluetooth packet rate.
+        public void RenderMotionPointer()
+        {
+            lock (inputLock)
+            {
+                if (!pointerPending) return;
+                long now = Stopwatch.GetTimestamp();
+                double elapsed = lastPointerTick == 0 ? 0.008 : Math.Min(0.05, (double)(now - lastPointerTick) / Stopwatch.Frequency);
+                lastPointerTick = now;
+                double blend = 1.0 - Math.Exp(-elapsed / 0.022);
+                pointerX += (targetX - pointerX) * blend;
+                pointerY += (targetY - pointerY) * blend;
+                if (Math.Abs(pointerX - targetX) < 0.5 && Math.Abs(pointerY - targetY) < 0.5)
+                {
+                    pointerX = targetX; pointerY = targetY; pointerPending = false; lastPointerTick = 0;
+                }
+                SetCursorPos((int)Math.Round(pointerX), (int)Math.Round(pointerY));
+            }
+        }
+
+        private void QueuePointer(double x, double y)
+        {
+            if (!pointerPending && GetCursorPos(out Point current))
+            {
+                pointerX = current.X; pointerY = current.Y; lastPointerTick = 0;
+            }
+            targetX = x; targetY = y; pointerPending = true;
+        }
+
+
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Point { public int X; public int Y; }
+        [DllImport("user32.dll")] private static extern bool SetCursorPos(int x, int y);
+        [DllImport("user32.dll")] private static extern bool GetCursorPos(out Point point);
+        [DllImport("user32.dll")] private static extern int GetSystemMetrics(int index);
+        [StructLayout(LayoutKind.Sequential)]
+        private struct Rect { public int Left, Top, Right, Bottom; }
+        [StructLayout(LayoutKind.Sequential)]
+        private struct MonitorInfo { public int Size; public Rect Monitor, Work; public uint Flags; }
+        [DllImport("user32.dll")] private static extern IntPtr MonitorFromPoint(Point point, uint flags);
+        [DllImport("user32.dll", CharSet = CharSet.Auto)]
+        private static extern bool GetMonitorInfo(IntPtr monitor, ref MonitorInfo info);
+
+        private static DesktopBounds GetDesktopBounds() => new(
+            GetSystemMetrics(76), GetSystemMetrics(77), GetSystemMetrics(78), GetSystemMetrics(79));
+
+        private static Point CurrentMonitorCenter(DesktopBounds desktop)
+        {
+            if (GetCursorPos(out Point cursor))
+            {
+                var info = new MonitorInfo { Size = Marshal.SizeOf<MonitorInfo>() };
+                IntPtr monitor = MonitorFromPoint(cursor, 2); // nearest monitor
+                if (monitor != IntPtr.Zero && GetMonitorInfo(monitor, ref info))
+                    return new Point { X = info.Monitor.Left + (info.Monitor.Right - info.Monitor.Left) / 2,
+                                       Y = info.Monitor.Top + (info.Monitor.Bottom - info.Monitor.Top) / 2 };
+            }
+            return new Point { X = desktop.Left + desktop.Width / 2, Y = desktop.Top + desktop.Height / 2 };
+        }
+
+        public void ResetMotionPointer()
+        {
+            lock (inputLock) { motion.Reset(); homeHeld = false; homeRecentered = false; pointerPending = false; lastPointerTick = 0; }
+        }
+
+        private void UpdateMotionPointer(byte[] data, long now, bool home)
+        {
+            if (!User.Default.MotionPointer)
+            {
+                UpdateButton("home", home, User.Default.HomeButton);
+                return;
+            }
+            if (home && !homeHeld)
+            {
+                homeHeld = true;
+                pointerPending = false; lastPointerTick = 0;
+                homeRecentered = false;
+                homePressedAt = now;
+                motion.BeginCalibration();
+            }
+            else if (!home && homeHeld)
+            {
+                if (!homeRecentered)
+                {
+                    UpdateButton("home", true, User.Default.HomeButton);
+                    UpdateButton("home", false, User.Default.HomeButton);
+                }
+                homeHeld = false;
+            }
+
+            DesktopBounds desktop = GetDesktopBounds();
+            if (!desktop.IsValid) return;
+            if (!motion.Initialized && GetCursorPos(out Point cursor))
+                motion.SetPosition(desktop.ToMotionX(cursor.X), desktop.ToMotionY(cursor.Y));
+            Vector3 accel = new(ReadSensor(data, 4), ReadSensor(data, 6), ReadSensor(data, 8));
+            const float gyroScale = 0.017453292f / 14.285f;
+            Vector3 gyro = new Vector3(ReadSensor(data, 10), ReadSensor(data, 12), ReadSensor(data, 14)) * gyroScale;
+            bool moved = motion.Update(accel, gyro, now, Stopwatch.Frequency, homeHeld && !homeRecentered, Math.Clamp(User.Default.MotionSensitivity, 0.25, 3.0), out double x, out double y);
+            if (homeHeld && !homeRecentered && (double)(now - homePressedAt) / Stopwatch.Frequency >= 1.0)
+            {
+                motion.Calibrate();
+                homeRecentered = true;
+                pointerPending = false; lastPointerTick = 0;
+                Point center = CurrentMonitorCenter(desktop);
+                motion.SetPosition(desktop.ToMotionX(center.X), desktop.ToMotionY(center.Y));
+                SetCursorPos(center.X, center.Y);
+            }
+            else if (moved && !homeHeld)
+                QueuePointer(desktop.ToScreenX(x), desktop.ToScreenY(y));
+        }
+
+        private static short ReadSensor(byte[] data, int offset) => (short)(data[offset] | (data[offset + 1] << 8));
+
+        private void SetStatus(bool connected)
+        {
+            Settings.Default._Connected = connected;
+            Settings.Default._Status = connected ? "#00BB00" : "#BB0000";
+            Settings.Default._StatusEffect = connected ? "#00FF00" : "#FF0000";
+        }
+
         private void OffTimer_Elapsed(object source, ElapsedEventArgs e)
         {
-            Settings.Default._Connected = false;
-            Settings.Default._Status = "#BB0000";
-            Settings.Default._StatusEffect = "#FF0000";
-        }
-        private static ulong MAC802DOT3(string macAddress) //https://stackoverflow.com/a/50519302
-        {
-            string hex = macAddress.Replace(":", "");
-            return Convert.ToUInt64(hex, 16);
-        }
-        private static void SendInput(string input, int aStrength = 0)
-        {
-            if (input == null) return;
-            string[] words = input.Split(' ');
-            switch (words[0])
+            lock (inputLock)
             {
-                case "VWheel":
-                    mouse_event(KeyCodeCollection.GetKeyCodes()["--Don't Use This Mouse wheel"], 0, 0, User.Default.ScrollWheelSpeed * aStrength, 0);
-                    break;
-                case "HWheel":
-                    mouse_event(KeyCodeCollection.GetKeyCodes()["--Don't Use This Mouse hwheel"], 0, 0, User.Default.ScrollWheelSpeed * aStrength, 0);
-                    break;
-                case "Toggle":
-                    if (input != Settings.Default._CurrentInput)
-                    {
-                        Settings.Default._UseWheel = !Settings.Default._UseWheel;
-                    }
-                    break;
-                case "X1":
-
-                case "X2":
-                    if (input == Settings.Default._CurrentInput)
-                    {
-                        mouse_event(KeyCodeCollection.GetKeyCodes()["--Don't Use This X DOWN"], 0, 0, (byte)KeyCodeCollection.GetKeyCodes()[input], 0);
-                    }
-                    else
-                    {
-                        mouse_event(KeyCodeCollection.GetKeyCodes()["--Don't Use This X UP"], 0, 0, (byte)KeyCodeCollection.GetKeyCodes()[input], 0);
-                    }
-                    break;
-                case "Mouse":
-                    if (input == Settings.Default._CurrentInput)
-                    {
-                        mouse_event((byte)KeyCodeCollection.GetKeyCodes()["--Don't Use This " + input + " DOWN"], 0, 0, 0, 0);
-                    }
-                    else
-                    {
-                        mouse_event((byte)KeyCodeCollection.GetKeyCodes()["--Don't Use This " + input + " UP"], 0, 0, 0, 0);
-                    }
-                    break;
-                case "Launch:":
-                    if (input != Settings.Default._CurrentInput)
-                    {
-                        Process P = new();
-                        P.StartInfo.UseShellExecute = true;
-                        P.StartInfo.FileName = input[(words[0].Length + 1)..];
-                        P.Start();
-                    }
-                    break;
-                default:
-                    if (input == Settings.Default._CurrentInput)
-                    {
-                        keybd_event((byte)KeyCodeCollection.GetKeyCodes()[input], 0, 1 | 0, 0);
-                        Settings.Default._TimePrev = DateTimeOffset.Now.ToUnixTimeMilliseconds();
-                    }
-                    else
-                    {
-                        keybd_event((byte)KeyCodeCollection.GetKeyCodes()[input], 0, 1 | 2, 0);
-                    }
-                    break;
-            }
-        }
-        private static bool TimePassed()
-        {
-            return DateTimeOffset.Now.ToUnixTimeMilliseconds() - Settings.Default._TimePrev > 200;
-        }
-        private static void HandleButtonDown(string button, string status)
-        {
-            Settings.Default._CurrentInput = button;
-            SendInput(button);
-            Settings.Default[status] = false;
-        }
-        private static void HandleButtonUp(string status)
-        {
-            Settings.Default._Release = Settings.Default._CurrentInput;
-            Settings.Default._CurrentInput = null;
-            SendInput(Settings.Default._Release);
-            Settings.Default[status] = true;
-        }
-        private void TouchpadButton()
-        {
-            if (Settings.Default._TouchpadButton
-                    && ((Math.Pow(sensorData.AxisX - 157, 2) + Math.Pow(sensorData.AxisY - 157, 2) <= 6400
-                    && Settings.Default._TchBtn)
-                    || (Settings.Default._CurrentInput == User.Default.TouchMidButton
-                    && TimePassed()
-                    && !User.Default.TouchMidButton.StartsWith("Mouse")
-                    )))
-            {
-                HandleButtonDown(User.Default.TouchMidButton, "_TchBtn");
-            }
-            else if (Settings.Default._TouchpadButton
-                && ((sensorData.ShiftedX < 0
-                && sensorData.ShiftedY >= 0
-                && Settings.Default._TchBtn)
-                || (Settings.Default._CurrentInput == User.Default.TouchLeftButton
-                && TimePassed()
-                && !User.Default.TouchLeftButton.StartsWith("Mouse")
-                )))
-            {
-                HandleButtonDown(User.Default.TouchLeftButton, "_TchBtn");
-            }
-            else if (Settings.Default._TouchpadButton
-                && ((sensorData.ShiftedX > 0
-                && sensorData.ShiftedY <=
-                0 && Settings.Default._TchBtn)
-                || (Settings.Default._CurrentInput == User.Default.TouchRightButton
-                && TimePassed()
-                && !User.Default.TouchRightButton.StartsWith("Mouse")
-                )))
-            {
-                HandleButtonDown(User.Default.TouchRightButton, "_TchBtn");
-            }
-            else if (Settings.Default._TouchpadButton
-                && ((sensorData.ShiftedX > 0
-                && sensorData.ShiftedY >= 0
-                && Settings.Default._TchBtn)
-                || (Settings.Default._CurrentInput == User.Default.TouchBotButton
-                && TimePassed()
-                && !User.Default.TouchBotButton.StartsWith("Mouse")
-                )))
-            {
-                HandleButtonDown(User.Default.TouchBotButton, "_TchBtn");
-            }
-            else if (Settings.Default._TouchpadButton
-                && ((sensorData.ShiftedX < 0
-                && sensorData.ShiftedY <= 0
-                && Settings.Default._TchBtn)
-                || (Settings.Default._CurrentInput == User.Default.TouchTopButton
-                && TimePassed()
-                && !User.Default.TouchTopButton.StartsWith("Mouse")
-                )))
-            {
-                HandleButtonDown(User.Default.TouchTopButton, "_TchBtn");
-            }
-            else if (!Settings.Default._TouchpadButton && !Settings.Default._TchBtn)
-            {
-                HandleButtonUp("_TchBtn");
-            }
-        }
-        private void TriggerButton()
-        {
-            if (Settings.Default._TriggerButton
-                    && ((sensorData.AxisX == 0
-                    && sensorData.AxisY == 0
-                    && Settings.Default._TrigBtn)
-                    || (Settings.Default._CurrentInput == User.Default.TriggerButton
-                    && TimePassed()
-                    && !User.Default.TriggerButton.StartsWith("Mouse")
-                    )))
-            {
-                HandleButtonDown(User.Default.TriggerButton, "_TrigBtn");
-            }
-            else if (Settings.Default._TriggerButton
-                && ((Math.Pow(sensorData.AxisX - 157, 2) + Math.Pow(sensorData.AxisY - 157, 2) <= 6400
-                && Settings.Default._TrigBtn)
-                || (Settings.Default._CurrentInput == User.Default.TriggerMidButton
-                && TimePassed()
-                && !User.Default.TriggerMidButton.StartsWith("Mouse")
-                )))
-            {
-                HandleButtonDown(User.Default.TriggerMidButton, "_TrigBtn");
-            }
-            else if (Settings.Default._TriggerButton
-                && ((sensorData.ShiftedX < 0
-                && sensorData.ShiftedY >= 0
-                && Settings.Default._TrigBtn)
-                || (Settings.Default._CurrentInput == User.Default.TriggerLeftButton
-                && TimePassed()
-                && !User.Default.TriggerLeftButton.StartsWith("Mouse")
-                )))
-            {
-                HandleButtonDown(User.Default.TriggerLeftButton, "_TrigBtn");
-            }
-            else if (Settings.Default._TriggerButton
-                && ((sensorData.ShiftedX > 0
-                && sensorData.ShiftedY <= 0
-                && Settings.Default._TrigBtn)
-                || (Settings.Default._CurrentInput == User.Default.TriggerRightButton
-                && TimePassed()
-                && !User.Default.TriggerRightButton.StartsWith("Mouse")
-                )))
-            {
-                HandleButtonDown(User.Default.TriggerRightButton, "_TrigBtn");
-            }
-            else if (Settings.Default._TriggerButton
-                && ((sensorData.ShiftedX > 0
-                && sensorData.ShiftedY >= 0
-                && Settings.Default._TrigBtn)
-                || (Settings.Default._CurrentInput == User.Default.TriggerBotButton
-                && TimePassed()
-                && !User.Default.TriggerBotButton.StartsWith("Mouse")
-                )))
-            {
-                HandleButtonDown(User.Default.TriggerBotButton, "_TrigBtn");
-            }
-            else if (Settings.Default._TriggerButton
-                && ((sensorData.ShiftedX < 0
-                && sensorData.ShiftedY <= 0
-                && Settings.Default._TrigBtn)
-                || (Settings.Default._CurrentInput == User.Default.TriggerTopButton
-                && TimePassed()
-                && !User.Default.TriggerTopButton.StartsWith("Mouse")
-                )))
-            {
-                HandleButtonDown(User.Default.TriggerTopButton, "_TrigBtn");
-            }
-            else if (!Settings.Default._TriggerButton && !Settings.Default._TrigBtn)
-            {
-                HandleButtonUp("_TrigBtn");
-            }
-        }
-        private static void HomeButton()
-        {
-            if (Settings.Default._HomeButton
-                    && (Settings.Default._HomeBtn
-                    || (Settings.Default._CurrentInput == User.Default.HomeButton
-                    && TimePassed()
-                    && !User.Default.HomeButton.StartsWith("Mouse")
-                    )))
-            {
-                HandleButtonDown(User.Default.HomeButton, "_HomeBtn");
-            }
-            else if (!Settings.Default._HomeButton && !Settings.Default._HomeBtn)
-            {
-                HandleButtonUp("_HomeBtn");
-            }
-        }
-        private static void BackButton()
-        {
-            if (Settings.Default._BackButton
-                    && (Settings.Default._BackBtn
-                    || (Settings.Default._CurrentInput == User.Default.BackButton
-                    && TimePassed()
-                    && !User.Default.BackButton.StartsWith("Mouse")
-                    )))
-            {
-                HandleButtonDown(User.Default.BackButton, "_BackBtn");
-            }
-            else if (!Settings.Default._BackButton && !Settings.Default._BackBtn)
-            {
-                HandleButtonUp("_BackBtn");
-            }
-        }
-        private static void VolumeUpButton()
-        {
-            if (Settings.Default._VolumeUpButton
-                    && (Settings.Default._VolUpBtn
-                    || (Settings.Default._CurrentInput == User.Default.VolumeUpButton
-                    && TimePassed()
-                    && !User.Default.VolumeUpButton.StartsWith("Mouse")
-                    )))
-            {
-                HandleButtonDown(User.Default.VolumeUpButton, "_VolUpBtn");
-            }
-            else if (!Settings.Default._VolumeUpButton && !Settings.Default._VolUpBtn)
-            {
-                HandleButtonUp("_VolUpBtn");
-            }
-        }
-        private static void VolumeDownButton()
-        {
-            if (Settings.Default._VolumeDownButton
-                    && (Settings.Default._VolDownBtn
-                    || (Settings.Default._CurrentInput == User.Default.VolumeDownButton
-                    && TimePassed()
-                    && !User.Default.VolumeDownButton.StartsWith("Mouse")
-                    )))
-            {
-                HandleButtonDown(User.Default.VolumeDownButton, "_VolDownBtn");
-            }
-            else if (!Settings.Default._VolumeDownButton && !Settings.Default._VolDownBtn)
-            {
-                HandleButtonUp("_VolDownBtn");
+                if ((Stopwatch.GetTimestamp() - lastPacketTimestamp) * 1000.0 / Stopwatch.Frequency < Settings.Default._TimeOut) return;
+                ReleaseAllInputs();
+                iTrackingTouch = false;
+                motion.Reset(); activity.Stop(); homeHeld = false; homeRecentered = false; pointerPending = false; lastPointerTick = 0;
+                SetStatus(false);
             }
         }
 
+        private static ulong MAC802DOT3(string address)
+        {
+            string hex = (address ?? "").Replace(":", "").Replace("-", "").Trim();
+            if (hex.Length != 12 || !ulong.TryParse(hex, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out ulong result))
+                throw new ArgumentException("Introduce una direccion MAC valida de 12 digitos hexadecimales.");
+            return result;
+        }
+
+        private static void SendInput(string input, bool down)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return;
+            if (input == "Toggle")
+            {
+                if (down) Settings.Default._UseWheel = !Settings.Default._UseWheel;
+            }
+            else if (input.StartsWith("Launch:", StringComparison.OrdinalIgnoreCase))
+            {
+                if (down)
+                {
+                    try { Process.Start(new ProcessStartInfo(input.Substring(7).Trim()) { UseShellExecute = true }); }
+                    catch (Exception ex) { Debug.WriteLine(ex); }
+                }
+            }
+            else if (input.StartsWith("Mouse ", StringComparison.Ordinal))
+            {
+                if (keyCodes.TryGetValue("--Don't Use This " + input + (down ? " DOWN" : " UP"), out short flag))
+                    mouse_event(flag, 0, 0, 0, 0);
+            }
+            else if (input == "X1 mouse button" || input == "X2 mouse button")
+                mouse_event(keyCodes[down ? "--Don't Use This X DOWN" : "--Don't Use This X UP"], 0, 0, keyCodes[input], 0);
+            else if (keyCodes.TryGetValue(input, out short key))
+            {
+                // Navigation and Windows keys use the extended-key flag.
+                bool extended = key == 0x21 || key == 0x22 || key == 0x23 || key == 0x24 ||
+                    (key >= 0x25 && key <= 0x28) || key == 0x2D || key == 0x2E ||
+                    key == 0x5B || key == 0x5C || key == 0x5D || key == 0x6F;
+                keybd_event((byte)key, 0, (extended ? 1u : 0u) | (down ? 0u : 2u), 0);
+            }
+        }
+
+        private static void SendWheel(string axis, int strength)
+        {
+            mouse_event(keyCodes[axis == "HWheel" ? "--Don't Use This Mouse hwheel" : "--Don't Use This Mouse wheel"], 0, 0, User.Default.ScrollWheelSpeed * strength, 0);
+        }
+
+        private void UpdateButton(string button, bool pressed, string mapping)
+        {
+            if (pressed && !activeButtons.ContainsKey(button))
+            {
+                if (string.IsNullOrWhiteSpace(mapping)) return;
+                activeButtons[button] = mapping;
+                activeInputs.TryGetValue(mapping, out int count);
+                activeInputs[mapping] = count + 1;
+                if (count == 0) SendInput(mapping, true);
+            }
+            else if (!pressed && activeButtons.TryGetValue(button, out string held))
+            {
+                activeButtons.Remove(button);
+                int count = activeInputs[held] - 1;
+                if (count == 0) { activeInputs.Remove(held); SendInput(held, false); }
+                else activeInputs[held] = count;
+            }
+        }
+
+        private void ReleaseAllInputs()
+        {
+            foreach (string input in activeInputs.Keys.ToArray()) SendInput(input, false);
+            activeButtons.Clear();
+            activeInputs.Clear();
+        }
+
+        private string TouchMapping(bool trigger)
+        {
+            int x = sensorData.AxisX, y = sensorData.AxisY;
+            if (trigger && x == 0 && y == 0) return User.Default.TriggerButton;
+            if ((x - 157) * (x - 157) + (y - 157) * (y - 157) <= 6400)
+                return trigger ? User.Default.TriggerMidButton : User.Default.TouchMidButton;
+            if (sensorData.ShiftedX < 0 && sensorData.ShiftedY >= 0) return trigger ? User.Default.TriggerLeftButton : User.Default.TouchLeftButton;
+            if (sensorData.ShiftedX > 0 && sensorData.ShiftedY <= 0) return trigger ? User.Default.TriggerRightButton : User.Default.TouchRightButton;
+            if (sensorData.ShiftedX > 0 && sensorData.ShiftedY >= 0) return trigger ? User.Default.TriggerBotButton : User.Default.TouchBotButton;
+            return trigger ? User.Default.TriggerTopButton : User.Default.TouchTopButton;
+        }
 
         bool iTrackingTouch = false;
 
@@ -357,7 +317,7 @@ namespace GearVR_Controller
                     // We either scroll vertically or horizontally not both
                     && absDeltaX > absDeltaY)
                 {
-                    SendInput("HWheel", sensorData.Delta_X);
+                    SendWheel("HWheel", sensorData.Delta_X);
                     consumedX = true;
                     consumedY = true;
                 }
@@ -366,7 +326,7 @@ namespace GearVR_Controller
                     // We either scroll vertically or horizontally not both
                     && absDeltaY > absDeltaX)
                 {
-                    SendInput("VWheel", sensorData.Delta_Y);
+                    SendWheel("VWheel", sensorData.Delta_Y);
                     consumedX = true;
                     consumedY = true;
                 }
@@ -435,6 +395,9 @@ namespace GearVR_Controller
         private readonly byte[] byte_values = new byte[60];
         private void SelectedCharacteristic_ValueChanged(GattCharacteristic sender, GattValueChangedEventArgs args)
         {
+            lock (inputLock)
+            {
+            if (sender != notify_characteristic) return;
             if (byte_values.Length == args.CharacteristicValue.Length)
             {
                 if (!Settings.Default._Connected)
@@ -444,29 +407,34 @@ namespace GearVR_Controller
                     Settings.Default._StatusEffect = "#00FF00";
                 }
 
+                lastPacketTimestamp = Stopwatch.GetTimestamp();
+                OffTimer.Stop();
                 OffTimer.Interval = Settings.Default._TimeOut;
+                OffTimer.Start();
 
                 DataReader.FromBuffer(args.CharacteristicValue).ReadBytes(byte_values);
 
                 sensorData.AxisX = (((byte_values[54] & 0xF) << 6) + ((byte_values[55] & 0xFC) >> 2)) & 0x3FF;
                 sensorData.AxisY = (((byte_values[55] & 0x3) << 8) + ((byte_values[56] & 0xFF) >> 0)) & 0x3FF;
+                activity.Observe(lastPacketTimestamp,
+                    (byte_values[58] & 0x3f) != 0, sensorData.AxisX != 0 || sensorData.AxisY != 0);
                 if (User.Default.Accel)
                 {
-                    sensorData.AccelX = (int)(((byte_values[4] << 8) + byte_values[5]) * 10000.0 * 9.80665 / 2048.0);
-                    sensorData.AccelY = (int)(((byte_values[6] << 8) + byte_values[7]) * 10000.0 * 9.80665 / 2048.0);
-                    sensorData.AccelZ = (int)(((byte_values[8] << 8) + byte_values[9]) * 10000.0 * 9.80665 / 2048.0);
+                    sensorData.AccelX = (int)(ReadSensor(byte_values, 4) * 10000.0 * 9.80665 / 2048.0);
+                    sensorData.AccelY = (int)(ReadSensor(byte_values, 6) * 10000.0 * 9.80665 / 2048.0);
+                    sensorData.AccelZ = (int)(ReadSensor(byte_values, 8) * 10000.0 * 9.80665 / 2048.0);
                 }
                 if (User.Default.Gyro)
                 {
-                    sensorData.GyroX = (int)(((byte_values[10] << 8) + byte_values[11]) * 10000.0 * 0.017453292 / 14.285);
-                    sensorData.GyroY = (int)(((byte_values[12] << 8) + byte_values[13]) * 10000.0 * 0.017453292 / 14.285);
-                    sensorData.GyroZ = (int)(((byte_values[14] << 8) + byte_values[15]) * 10000.0 * 0.017453292 / 14.285);
+                    sensorData.GyroX = (int)(ReadSensor(byte_values, 10) * 10000.0 * 0.017453292 / 14.285);
+                    sensorData.GyroY = (int)(ReadSensor(byte_values, 12) * 10000.0 * 0.017453292 / 14.285);
+                    sensorData.GyroZ = (int)(ReadSensor(byte_values, 14) * 10000.0 * 0.017453292 / 14.285);
                 }
                 if (User.Default.Magnet)
                 {
-                    sensorData.MagnetX = (int)(((byte_values[32] << 8) + byte_values[33]) * 0.06);
-                    sensorData.MagnetY = (int)(((byte_values[34] << 8) + byte_values[35]) * 0.06);
-                    sensorData.MagnetZ = (int)(((byte_values[36] << 8) + byte_values[37]) * 0.06);
+                    sensorData.MagnetX = (int)(ReadSensor(byte_values, 32) * 0.06);
+                    sensorData.MagnetY = (int)(ReadSensor(byte_values, 34) * 0.06);
+                    sensorData.MagnetZ = (int)(ReadSensor(byte_values, 36) * 0.06);
                 }
 
                 Settings.Default._TriggerButton = ((byte_values[58] & 1) == 1);
@@ -480,196 +448,126 @@ namespace GearVR_Controller
                 sensorData.ShiftedX = (sensorData.AxisX - 157) + (sensorData.AxisY - 157);
                 sensorData.ShiftedY = sensorData.AxisY - sensorData.AxisX;
 
-                //Buttons
-                TouchpadButton();
-                TriggerButton();
-                HomeButton();
-                BackButton();
-                VolumeUpButton();
-                VolumeDownButton();
+                UpdateButton("touch", Settings.Default._TouchpadButton, TouchMapping(false));
+                UpdateButton("trigger", Settings.Default._TriggerButton, TouchMapping(true));
+                UpdateMotionPointer(byte_values, lastPacketTimestamp, Settings.Default._HomeButton);
+                UpdateButton("back", Settings.Default._BackButton, User.Default.BackButton);
+                UpdateButton("up", Settings.Default._VolumeUpButton, User.Default.VolumeUpButton);
+                UpdateButton("down", Settings.Default._VolumeDownButton, User.Default.VolumeDownButton);
 
-                if (Settings.Default._NoButton)
-                {
-                    Settings.Default._VolDownBtn = true;
-                    Settings.Default._VolUpBtn = true;
-                    Settings.Default._BackBtn = true;
-                    Settings.Default._HomeBtn = true;
-                    Settings.Default._TchBtn = true;
-                    Settings.Default._TrigBtn = true;
-                }
-
-                TrackPad();
+                if (!User.Default.MotionPointer || Settings.Default._UseWheel) TrackPad();
+                else iTrackingTouch = false;
             }
-
-        }
-        private static async void SendToCharacteristic(byte[] value)
-        {
-            if (write_characteristic == null) return;
-            try
-            {
-                await write_characteristic.WriteValueAsync(CryptographicBuffer.CreateFromByteArray(value));
             }
-            catch (Exception e)
-            {
-                Debug.WriteLine("INFO: write to characteristic " + e.Message);
-            }
-        }
-        private static void SendKeepAlive()
-        {
-            /*if (DateTime.Now > MainProgram.time):
-				self.__time = round(time.time()) + 10*/
-            //SendToCharacteristic(new byte[] {0x04, 0x00}, 4);
         }
         public void Disconnect()
         {
-            SendToCharacteristic(new byte[] { 0x00, 0x00 });
-
-            device?.Dispose();
-            device = null;
-            notify_characteristic?.Service?.Dispose();
-            notify_characteristic = null;
-            write_characteristic = null;
-        }
-        private async Task Get_Characteristics(GattDeviceService myService)
-        {
-            var accessRequestResponse = await myService.RequestAccessAsync();
-            GattCharacteristicsResult CharResult = await myService.GetCharacteristicsAsync();// GetCharacteristicsAsync(Windows.Devices.Bluetooth.BluetoothCacheMode.Uncached)
-            if (CharResult.Status == GattCommunicationStatus.Success)
+            Interlocked.Increment(ref connectionGeneration);
+            lock (inputLock)
             {
-                foreach (GattCharacteristic c in CharResult.Characteristics)
-                {
-                    if (c.Uuid == guid_controller_write)
-                    {
-                        write_characteristic = c;
-                        continue;
-                    }
-                    if (c.Uuid == guid_controller_notify)
-                    {
-                        notify_characteristic = c;
-                        continue;
-                    }
-                }
-                if (write_characteristic != null && notify_characteristic != null) try
-                    {
-                        SendToCharacteristic(new byte[] { 0x01, 0x00 }); //enable sending data
-                        SendToCharacteristic(new byte[] { 0x06, 0x00 });
-                        SendToCharacteristic(new byte[] { 0x07, 0x00 });
-                        SendToCharacteristic(new byte[] { 0x08, 0x00 }); //enable VR mode, high frequency event data update
-                        // Write the ClientCharacteristicConfigurationDescriptor in order for server to send notifications.               
-                        var result = await notify_characteristic.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify);
-                        if (result == GattCommunicationStatus.Success)
-                        {
-                            Debug.WriteLine("Successfully registered for notifications");
-                            notify_characteristic.ValueChanged += SelectedCharacteristic_ValueChanged;
-                            OffTimer.Start();
-                            OffTimer.Elapsed += OffTimer_Elapsed;
-                        }
-                        else
-                        {
-                            Debug.WriteLine($"Error registering for notifications: {result}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        // This usually happens when not all characteristics are found
-                        // or selected characteristic has no Notify.
-
-                        Debug.Write(ex.ToString());
-                        await Task.Delay(100);
-                        await Get_Characteristics(myService); //try again !!! Add a max try counter to prevent infinite loop!!!!!!!
-                    }
-            }
-            else
-            {
-                Debug.WriteLine($"Restricted service: Status={CharResult.Status} Can't read characteristics. Press Control+Shift+F5 before starting program again.");
+                OffTimer.Stop();
+                if (notify_characteristic != null)
+                    notify_characteristic.ValueChanged -= SelectedCharacteristic_ValueChanged;
+                ReleaseAllInputs();
+                iTrackingTouch = false;
+                motion.Reset(); activity.Stop(); homeHeld = false; homeRecentered = false; pointerPending = false; lastPointerTick = 0;
+                SetStatus(false);
+                notify_characteristic?.Service?.Dispose();
+                notify_characteristic = null;
+                write_characteristic = null;
+                device?.Dispose();
+                device = null;
             }
         }
+
         private void PairingRequestedHandler(DeviceInformationCustomPairing sender, DevicePairingRequestedEventArgs args)
         {
-            Debug.WriteLine("PairingRequestedHandler executed");
-            switch (args.PairingKind)
-            {
-                case DevicePairingKinds.ConfirmOnly:
-                    // Windows itself will pop the confirmation dialog as part of "consent" if this is running on Desktop or Mobile
-                    // If this is an App for 'Windows IoT Core' where there is no Windows Consent UX, you may want to provide your own confirmation.
-                    Debug.WriteLine($"Windows.Devices.Enumeration.DevicePairingKinds.ConfirmOnly");
-                    args.Accept();
-                    break;
-
-                case DevicePairingKinds.ProvidePin:
-                    Debug.WriteLine($"Windows.Devices.Enumeration.DevicePairingKinds.ProvidePin");
-                    var collectPinDeferral = args.GetDeferral();
-                    string pin = "0000";
-                    args.Accept(pin);
-                    collectPinDeferral.Complete();
-                    break;
-
-                default:
-                    Debug.WriteLine($"Windows.Devices.Enumeration.DevicePairingKinds = {args.PairingKind}");
-                    break;
-            }
+            if (args.PairingKind == DevicePairingKinds.ConfirmOnly) args.Accept();
         }
-        async public void Pair_Connect() // https://stackoverflow.com/questions/35461817/uwp-bluetoothdevice-frombluetoothaddressasync-throws-0x80070002-INFO-on-no
+
+        public async Task Pair_Connect(CancellationToken cancellationToken)
         {
-            if (device != null)
+            int generation = Interlocked.Increment(ref connectionGeneration);
+            await connectionGate.WaitAsync(cancellationToken);
+            BluetoothLEDevice candidate = null;
+            GattDeviceService service = null;
+            GattCharacteristic notifications = null;
+            try
             {
-                Disconnect();
-                await Task.Delay(200);
-            }
-            device = await BluetoothLEDevice.FromBluetoothAddressAsync(MAC802DOT3(User.Default.MACAddressText));
-            DeviceInformation infDev = device.DeviceInformation; //We need this aux object to perform pairing
-            DevicePairingKinds ceremoniesSelected = DevicePairingKinds.ConfirmOnly /*| Windows.Devices.Enumeration.DevicePairingKinds.ProvidePin*/; //Only confirm pairing, we'll provide PIN from app
-            DevicePairingProtectionLevel protectionLevel = DevicePairingProtectionLevel.None; //Encryption; //Encrypted connection
-            DeviceInformationCustomPairing customPairing = infDev.Pairing.Custom; //Our app takes control of pairing, not OS
-            customPairing.PairingRequested += PairingRequestedHandler; //Our pairing request handler
-            Debug.WriteLine("PairingRequestedHandler registered");
-            DevicePairingResult result = await customPairing.PairAsync(ceremoniesSelected, protectionLevel); //launch pairing
-            customPairing.PairingRequested -= PairingRequestedHandler;
-            Debug.WriteLine("PairingRequestedHandler unregistered");
-            if ((result.Status == DevicePairingResultStatus.Paired) || (result.Status == DevicePairingResultStatus.AlreadyPaired))
-            {
-                GattDeviceServicesResult serviceResult = null;
-                if (device != null)
+                cancellationToken.ThrowIfCancellationRequested();
+                if (generation != connectionGeneration) return;
+                // Dispose the previous session without invalidating this attempt.
+                lock (inputLock)
                 {
-                    int servicesCount = 3;//Fill in the amount of services from your device!!!!!
-                    int tryCount = 0;
-                    bool connected = false;
-                    while (!connected)//This is to make sure all services are found.
-                    {
-                        tryCount++;
-                        serviceResult = await device.GetGattServicesAsync();
-                        if (serviceResult.Status == GattCommunicationStatus.Success && serviceResult.Services.Count >= servicesCount)
-                        {
-                            connected = true;
-                            Debug.WriteLine("Connected in " + tryCount + " tries");
-                        }
-                        if (tryCount > 15)//make this larger if faild
-                        {
-                            Debug.WriteLine("Failed to connect to device");
-                            return;
-                        }
-                    }
-                    if (connected)
-                    {
-                        for (int i = 0; i < serviceResult.Services.Count; i++)
-                        {
-                            var service = serviceResult.Services[i];
-                            //This must be the service that contains the Gatt-Characteristic you want to read from or write to !!!!!!!.
-                            if (service.Uuid.ToString() == "4f63756c-7573-2054-6872-65656d6f7465")
-                            {
-                                Debug.WriteLine("Get_Characteristics(service);");
-                                await Get_Characteristics(service);
-                                break;
-                            }
-                        }
-                    }
+                    OffTimer.Stop();
+                    if (notify_characteristic != null) notify_characteristic.ValueChanged -= SelectedCharacteristic_ValueChanged;
+                    ReleaseAllInputs();
+                    iTrackingTouch = false;
+                    motion.Reset(); activity.Stop(); homeHeld = false; homeRecentered = false; pointerPending = false; lastPointerTick = 0;
+                    SetStatus(false);
+                    notify_characteristic?.Service?.Dispose();
+                    device?.Dispose();
+                    notify_characteristic = null; write_characteristic = null; device = null;
                 }
+                candidate = await BluetoothLEDevice.FromBluetoothAddressAsync(MAC802DOT3(User.Default.MACAddressText)).AsTask(cancellationToken);
+                if (candidate == null) throw new InvalidOperationException("Windows no encontro el mando. Despiertalo y comprueba la direccion MAC y Bluetooth.");
+                if (!candidate.DeviceInformation.Pairing.IsPaired)
+                {
+                    var pairing = candidate.DeviceInformation.Pairing.Custom;
+                    pairing.PairingRequested += PairingRequestedHandler;
+                    try
+                    {
+                        var result = await pairing.PairAsync(DevicePairingKinds.ConfirmOnly, DevicePairingProtectionLevel.None).AsTask(cancellationToken);
+                        if (result.Status != DevicePairingResultStatus.Paired && result.Status != DevicePairingResultStatus.AlreadyPaired)
+                            throw new InvalidOperationException("No se pudo emparejar el mando: " + result.Status);
+                    }
+                    finally { pairing.PairingRequested -= PairingRequestedHandler; }
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                if (generation != connectionGeneration) return;
+                var services = await candidate.GetGattServicesForUuidAsync(guid_controller_service, BluetoothCacheMode.Uncached).AsTask(cancellationToken);
+                if (services.Status != GattCommunicationStatus.Success || services.Services.Count == 0)
+                    throw new InvalidOperationException("No se encontro el servicio del mando: " + services.Status + ". Despierta el mando y vuelve a intentar.");
+                service = services.Services[0];
+                var chars = await service.GetCharacteristicsAsync(BluetoothCacheMode.Uncached).AsTask(cancellationToken);
+                if (chars.Status != GattCommunicationStatus.Success)
+                    throw new InvalidOperationException("No se pudieron leer las caracteristicas Bluetooth: " + chars.Status);
+                var writer = chars.Characteristics.FirstOrDefault(c => c.Uuid == guid_controller_write);
+                notifications = chars.Characteristics.FirstOrDefault(c => c.Uuid == guid_controller_notify);
+                if (writer == null || notifications == null) throw new InvalidOperationException("Faltan caracteristicas Bluetooth del mando.");
+                cancellationToken.ThrowIfCancellationRequested();
+                if (generation != connectionGeneration) return;
+                notifications.ValueChanged += SelectedCharacteristic_ValueChanged;
+                var status = await notifications.WriteClientCharacteristicConfigurationDescriptorAsync(GattClientCharacteristicConfigurationDescriptorValue.Notify).AsTask(cancellationToken);
+                if (status != GattCommunicationStatus.Success) throw new InvalidOperationException("No se pudieron activar las notificaciones: " + status);
+                lock (inputLock)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (generation != connectionGeneration) return;
+                    device = candidate; notify_characteristic = notifications; write_characteristic = writer;
+                }
+                foreach (byte command in new byte[] { 0x01, 0x06, 0x07, 0x08 })
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    if (generation != connectionGeneration) return;
+                    status = await writer.WriteValueAsync(CryptographicBuffer.CreateFromByteArray(new byte[] { command, 0x00 })).AsTask(cancellationToken);
+                    if (status != GattCommunicationStatus.Success) throw new InvalidOperationException("Fallo la inicializacion del mando: " + status);
+                }
+                cancellationToken.ThrowIfCancellationRequested();
+                candidate = null; service = null; notifications = null;
             }
-            else
+            catch
             {
-                Debug.WriteLine($"Pairing failed, status={result.Status}");
+                if (generation == connectionGeneration) Disconnect();
+                throw;
+            }
+            finally
+            {
+                if (notifications != null) notifications.ValueChanged -= SelectedCharacteristic_ValueChanged;
+                service?.Dispose();
+                candidate?.Dispose();
+                connectionGate.Release();
             }
         }
     }
 }
-

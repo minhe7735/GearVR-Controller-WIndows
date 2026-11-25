@@ -1,7 +1,14 @@
-﻿using Hardcodet.Wpf.TaskbarNotification;
+using Hardcodet.Wpf.TaskbarNotification;
 using System.Windows;
 using System;
 using System.IO;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Threading;
+using Microsoft.Win32;
+using System.Threading;
+using System.Threading.Tasks;
+using Windows.Devices.Radios;
 
 namespace GearVR_Controller
 {
@@ -10,59 +17,361 @@ namespace GearVR_Controller
     /// </summary>
     public partial class MainWindow : Window
     {
+        private readonly TaskbarIcon tray;
+        private readonly DispatcherTimer pointerTimer;
+        private readonly DispatcherTimer reconnectTimer;
+        private readonly DispatcherTimer idleTimer;
+        private readonly MenuItem trayStatus;
+        private readonly MenuItem trayConnect;
+        private readonly MenuItem trayDisconnect;
+        private CancellationTokenSource connectionAttempt;
+        private CancellationTokenSource discoveryAttempt;
+        private WakeDetector wakeDetector;
+        private bool wakeRetryEnabled;
+        private bool waitingForWake;
+        private bool radioResetInProgress;
+        private bool exitAfterRadioReset;
+        private bool requestingRadioAccess;
+        private bool reconnectEnabled;
+        private bool exiting;
+        private bool startupReady;
+        private const string StartupValue = "GearVR Controller";
+        private const string StartupKey = @"Software\Microsoft\Windows\CurrentVersion\Run";
+
         public MainWindow()
         {
             InitializeComponent();
-            SensorData sensorData = SensorData.GetInstance();
-            this.DataContext = sensorData;
-
-            this.StateChanged += new EventHandler(Window_StateChanged);
+            DataContext = SensorData.GetInstance();
+            IdleTimeoutText.Text = Math.Clamp(User.Default.IdleTimeoutMinutes, 1, 1440).ToString();
+            tray = new TaskbarIcon
+            {
+                Icon = new System.Drawing.Icon(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.ico")),
+                ToolTipText = "Gear VR Controller"
+            };
+            var menu = new ContextMenu();
+            trayStatus = new MenuItem { Header = "Estado: Desconectado", IsEnabled = false };
+            trayConnect = new MenuItem { Header = "Conectar" };
+            trayConnect.Click += (s, e) =>
+            {
+                if (string.IsNullOrWhiteSpace(User.Default.MACAddressText)) ShowWindow();
+                ConnectButton_Click(s, e);
+            };
+            trayDisconnect = new MenuItem { Header = "Desconectar" };
+            trayDisconnect.Click += PowerOffButton_Click;
+            var show = new MenuItem { Header = "Abrir" };
+            show.Click += (s, e) => ShowWindow();
+            var exit = new MenuItem { Header = "Salir" };
+            exit.Click += (s, e) => { exiting = true; Close(); };
+            menu.Items.Add(trayStatus);
+            menu.Items.Add(new Separator());
+            menu.Items.Add(trayConnect);
+            menu.Items.Add(trayDisconnect);
+            menu.Items.Add(new Separator());
+            menu.Items.Add(show);
+            menu.Items.Add(exit);
+            menu.Opened += (s, e) => UpdateTrayMenu();
+            tray.ContextMenu = menu;
+            tray.TrayMouseDoubleClick += (s, e) => ShowWindow();
+            StateChanged += Window_StateChanged;
+            Application.Current.SessionEnding += (s, e) => { exiting = true; User.Default.Save(); MainProgram.GetInstance().Disconnect(); tray.Dispose(); };
+            using (var key = Registry.CurrentUser.OpenSubKey(StartupKey))
+                StartupCheckBox.IsChecked = string.Equals(key?.GetValue(StartupValue) as string, "\"" + Path.Combine(AppContext.BaseDirectory, "GearVR Controller.exe") + "\" --startup", StringComparison.OrdinalIgnoreCase);
+            startupReady = true;
+            pointerTimer = new DispatcherTimer(DispatcherPriority.Input) { Interval = TimeSpan.FromMilliseconds(8) };
+            pointerTimer.Tick += (s, e) => MainProgram.GetInstance().RenderMotionPointer();
+            pointerTimer.Start();
+            reconnectTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+            reconnectTimer.Tick += async (s, e) =>
+            {
+                if (Settings.Default._Connected && connectionAttempt == null) { ConnectionMessage.Text = "Mando conectado."; wakeRetryEnabled = false; }
+                if (reconnectEnabled && (User.Default.AutoConnect || wakeRetryEnabled) && !Settings.Default._Connected && connectionAttempt == null && discoveryAttempt == null)
+                {
+                    if (string.IsNullOrWhiteSpace(User.Default.MACAddressText) && DetectedDevices.Visibility != Visibility.Visible)
+                        await DetectControllersAsync(false);
+                    if (!string.IsNullOrWhiteSpace(User.Default.MACAddressText)) await ConnectAsync();
+                }
+            };
+            reconnectTimer.Start();
+            idleTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            idleTimer.Tick += (s, e) =>
+            {
+                UpdateTrayMenu();
+                if (!User.Default.IdleDisconnect) return;
+                int minutes = Math.Clamp(User.Default.IdleTimeoutMinutes, 1, 1440);
+                if (MainProgram.GetInstance().DisconnectIfIdle(TimeSpan.FromMinutes(minutes)))
+                {
+                    reconnectEnabled = false;
+                    wakeRetryEnabled = false;
+                    connectionAttempt?.Cancel();
+                    if (User.Default.IdleWakeReconnect) { waitingForWake = true; StartWakeMonitoring(); }
+                    else ConnectionMessage.Text = "Desconectado por inactividad. Pulsa Conectar para reanudar.";
+                }
+            };
+            idleTimer.Start();
+            if (Array.Exists(Environment.GetCommandLineArgs(), arg => arg == "--startup"))
+            {
+                WindowState = WindowState.Minimized;
+                ShowInTaskbar = false;
+            }
         }
 
-
-        private void Window_Loaded(object sender, RoutedEventArgs e)
+        private void UpdateTrayMenu()
         {
-            // Connect on start-up if needed
-            if (User.Default.AutoConnect)
-            {
-                MainProgram gvrc = MainProgram.GetInstance();
-                gvrc.Pair_Connect();
-            }
+            string state = Settings.Default._Connected ? "Conectado" : ConnectionMessage.Text;
+            trayStatus.Header = "Estado: " + state;
+            trayConnect.IsEnabled = !radioResetInProgress && connectionAttempt == null && !Settings.Default._Connected;
+            trayDisconnect.IsEnabled = Settings.Default._Connected || connectionAttempt != null || wakeDetector != null ||
+                                       (reconnectEnabled && (User.Default.AutoConnect || wakeRetryEnabled));
+        }
+
+        private void ShowWindow()
+        {
+            ShowInTaskbar = true;
+            Show();
+            WindowState = WindowState.Normal;
+            Activate();
+        }
+
+        private async void Window_Loaded(object sender, RoutedEventArgs e)
+        {
+            if (WindowState == WindowState.Minimized) Hide();
+            reconnectEnabled = User.Default.AutoConnect;
+            if (string.IsNullOrWhiteSpace(User.Default.MACAddressText)) await DetectControllersAsync(false);
+            if (reconnectEnabled && !string.IsNullOrWhiteSpace(User.Default.MACAddressText)) await ConnectAsync();
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            // Save user settings on exit
+            if (exiting && radioResetInProgress)
+            {
+                e.Cancel = true;
+                exitAfterRadioReset = true;
+                ConnectionMessage.Text = "Esperando a restaurar Bluetooth antes de salir...";
+                return;
+            }
+            if (!exiting)
+            {
+                e.Cancel = true;
+                Hide();
+                ShowInTaskbar = false;
+                return;
+            }
+            reconnectEnabled = false;
+            wakeRetryEnabled = false;
+            waitingForWake = false;
+            StopWakeMonitoring();
+            connectionAttempt?.Cancel();
+            discoveryAttempt?.Cancel();
+            reconnectTimer.Stop();
+            idleTimer.Stop();
+            pointerTimer.Stop();
             User.Default.Save();
-            
             MainProgram.GetInstance().Disconnect();
+            tray.Dispose();
         }
 
-
-
-        void Window_StateChanged(object sender, EventArgs e)
+        private void Window_StateChanged(object sender, EventArgs e)
         {
-            switch (this.WindowState)
-            {
-                case WindowState.Maximized:
-                    break;
-                case WindowState.Minimized:
-                    Application.Current.MainWindow.Hide();
-                    TaskbarIcon tray = new();
-                    string iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logo.ico");
-                    tray.Icon = new System.Drawing.Icon(iconPath);
-                    tray.ToolTipText = "GVR Controller";
-                    tray.TrayMouseDoubleClick += (s, e) =>
-                    {
-                        Application.Current.MainWindow.Show();
-                        Application.Current.MainWindow.WindowState = WindowState.Normal;
-                        tray.Dispose();
-                    };
-                    break;
-                case WindowState.Normal:
+            if (WindowState == WindowState.Minimized) { Hide(); ShowInTaskbar = false; }
+        }
 
-                    break;
+        private void StartupCheckBox_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!startupReady) return;
+            try
+            {
+                using var key = Registry.CurrentUser.CreateSubKey(StartupKey);
+                if (StartupCheckBox.IsChecked == true)
+                {
+                    string executable = Path.Combine(AppContext.BaseDirectory, "GearVR Controller.exe");
+                    if (!File.Exists(executable)) throw new FileNotFoundException("No se encontr\u00f3 el ejecutable de la aplicaci\u00f3n.");
+                    key.SetValue(StartupValue, "\"" + executable + "\" --startup");
+                }
+                else key.DeleteValue(StartupValue, false);
             }
+            catch (Exception ex)
+            {
+                startupReady = false;
+                StartupCheckBox.IsChecked = !(StartupCheckBox.IsChecked == true);
+                startupReady = true;
+                MessageBox.Show(this, ex.Message, "Inicio con Windows", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+
+        private void StopWakeMonitoring()
+        {
+            var detector = wakeDetector;
+            wakeDetector = null;
+            detector?.Dispose();
+        }
+
+        private void StartWakeMonitoring(bool alreadyQuiet = false)
+        {
+            StopWakeMonitoring();
+            string hex = (User.Default.MACAddressText ?? "").Replace(":", "").Replace("-", "").Trim();
+            if (hex.Length != 12 || !ulong.TryParse(hex, System.Globalization.NumberStyles.HexNumber,
+                    System.Globalization.CultureInfo.InvariantCulture, out ulong address))
+            {
+                ConnectionMessage.Text = "Direccion Bluetooth invalida. Pulsa Conectar para reanudar.";
+                return;
+            }
+            try
+            {
+                var detector = new WakeDetector(address, alreadyQuiet);
+                wakeDetector = detector;
+                detector.Ready += () => Dispatcher.BeginInvoke(new Action(async () =>
+                {
+                    if (!ReferenceEquals(wakeDetector, detector) || !waitingForWake) return;
+                    if (!User.Default.RestartBluetoothAfterIdle)
+                    {
+                        ConnectionMessage.Text = "En espera. Pulsa un boton del mando para reconectar.";
+                        return;
+                    }
+                    // The controller has been quiet; restart now, matching the successful experiment.
+                    StopWakeMonitoring();
+                    radioResetInProgress = true;
+                    ConnectButton.IsEnabled = false;
+                    ConnectionMessage.Text = "Reiniciando Bluetooth tras inactividad...";
+                    BluetoothRestartResult result;
+                    try { result = await BluetoothRadioRestart.RestartAsync(); }
+                    catch (Exception ex) { result = new BluetoothRestartResult { Message = "No se pudo verificar Bluetooth: " + ex.Message + ". Comprueba su estado en Windows." }; }
+                    finally
+                    {
+                        radioResetInProgress = false;
+                        ConnectButton.IsEnabled = connectionAttempt == null;
+                    }
+                    if (exitAfterRadioReset) { Close(); return; }
+                    if (!waitingForWake) return;
+                    if (!result.RadioOn)
+                    {
+                        waitingForWake = false;
+                        ConnectionMessage.Text = result.Message ?? "Bluetooth no esta disponible. Activalo en Windows.";
+                        return;
+                    }
+                    StartWakeMonitoring(true);
+                    if (wakeDetector != null)
+                        ConnectionMessage.Text = result.Success
+                            ? "Bluetooth reiniciado. Pulsa un boton del mando para reconectar."
+                            : (result.Message ?? "No se pudo reiniciar Bluetooth.") + " Esperando el mando.";
+                }));
+                detector.Awakened += () => Dispatcher.BeginInvoke(new Action(async () =>
+                {
+                    if (!ReferenceEquals(wakeDetector, detector)) return;
+                    StopWakeMonitoring();
+                    waitingForWake = false;
+                    reconnectEnabled = true;
+                    wakeRetryEnabled = true;
+                    ConnectionMessage.Text = "Mando despierto. Reconectando...";
+                    await ConnectAsync();
+                }));
+                detector.Failed += error => Dispatcher.BeginInvoke(new Action(() =>
+                {
+                    if (!ReferenceEquals(wakeDetector, detector)) return;
+                    StopWakeMonitoring();
+                    waitingForWake = false;
+                    ConnectionMessage.Text = "No se puede detectar el despertar Bluetooth: " + error;
+                }));
+                ConnectionMessage.Text = "Desconectado por inactividad. Esperando reposo del mando...";
+                detector.Start();
+            }
+            catch (Exception ex)
+            {
+                StopWakeMonitoring();
+                ConnectionMessage.Text = "No se puede detectar el despertar Bluetooth: " + ex.Message;
+            }
+        }
+
+        private async void RestartBluetooth_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            if (RestartBluetoothCheckBox.IsChecked != true)
+            {
+                User.Default.RestartBluetoothAfterIdle = false;
+                User.Default.Save();
+                return;
+            }
+            if (radioResetInProgress || requestingRadioAccess) return;
+            requestingRadioAccess = true;
+            try
+            {
+                var access = await Radio.RequestAccessAsync();
+                if (RestartBluetoothCheckBox.IsChecked != true) return;
+                if (access != RadioAccessStatus.Allowed)
+                {
+                    RestartBluetoothCheckBox.IsChecked = false;
+                    User.Default.RestartBluetoothAfterIdle = false;
+                    MessageBox.Show(this, "Windows no permitio controlar Bluetooth: " + access, "Reinicio de Bluetooth", MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+                else User.Default.RestartBluetoothAfterIdle = true;
+                User.Default.Save();
+            }
+            catch (Exception ex)
+            {
+                RestartBluetoothCheckBox.IsChecked = false;
+                User.Default.RestartBluetoothAfterIdle = false;
+                User.Default.Save();
+                MessageBox.Show(this, ex.Message, "Reinicio de Bluetooth", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            finally { requestingRadioAccess = false; }
+        }
+
+        private void IdleWakeReconnect_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            User.Default.IdleWakeReconnect = IdleWakeReconnectCheckBox.IsChecked == true;
+            User.Default.Save();
+            if (!User.Default.IdleWakeReconnect && waitingForWake)
+            {
+                waitingForWake = false;
+                StopWakeMonitoring();
+                ConnectionMessage.Text = "Desconectado. Pulsa Conectar para reanudar.";
+            }
+        }
+
+        private void IdleDisconnect_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            User.Default.IdleDisconnect = IdleDisconnectCheckBox.IsChecked == true;
+            User.Default.Save();
+            if (User.Default.IdleDisconnect) MainProgram.GetInstance().ResetIdleTimer();
+            else if (waitingForWake)
+            {
+                waitingForWake = false;
+                StopWakeMonitoring();
+                ConnectionMessage.Text = "Desconectado. Pulsa Conectar para reanudar.";
+            }
+        }
+
+        private void SaveIdleTimeout()
+        {
+            if (int.TryParse(IdleTimeoutText.Text, out int minutes) && minutes >= 1 && minutes <= 1440)
+            {
+                User.Default.IdleTimeoutMinutes = minutes;
+                User.Default.Save();
+                IdleTimeoutText.Text = minutes.ToString();
+            }
+            else
+            {
+                IdleTimeoutText.Text = Math.Clamp(User.Default.IdleTimeoutMinutes, 1, 1440).ToString();
+                ConnectionMessage.Text = "Introduce un tiempo entre 1 y 1440 minutos.";
+            }
+        }
+
+        private void IdleTimeoutText_LostFocus(object sender, RoutedEventArgs e)
+        {
+            if (IsLoaded) SaveIdleTimeout();
+        }
+
+        private void IdleTimeoutText_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.Key != System.Windows.Input.Key.Enter) return;
+            SaveIdleTimeout();
+            e.Handled = true;
+        }
+
+        private void SensitivitySlider_Changed(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            if (IsLoaded) Dispatcher.BeginInvoke(new Action(() => User.Default.Save()));
         }
 
         private void ScrollWheelSpeed_Click(object sender, RoutedEventArgs e)
@@ -182,17 +491,131 @@ namespace GearVR_Controller
             changeBinding.ShowDialog();
         }
 
-        private void ConnectButton_Click(object sender, RoutedEventArgs e)
+        private async void DetectButton_Click(object sender, RoutedEventArgs e)
         {
-            User.Default.Save();
-            MainProgram gvrc = MainProgram.GetInstance();
-            gvrc.Pair_Connect();
+            await DetectControllersAsync(true);
+        }
 
+        private async Task DetectControllersAsync(bool selectSingle)
+        {
+            if (discoveryAttempt != null) return;
+            using var attempt = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+            discoveryAttempt = attempt;
+            DetectButton.IsEnabled = false;
+            ConnectionMessage.Text = "Buscando mandos Gear VR...";
+            try
+            {
+                var devices = await ControllerDiscovery.FindAsync(attempt.Token);
+                DetectedDevices.ItemsSource = devices;
+                DetectedDevices.Visibility = devices.Count > 1 ? Visibility.Visible : Visibility.Collapsed;
+                if (devices.Count == 1)
+                {
+                    if (selectSingle || string.IsNullOrWhiteSpace(User.Default.MACAddressText))
+                    {
+                        User.Default.MACAddressText = devices[0];
+                        User.Default.Save();
+                    }
+                    ConnectionMessage.Text = "Mando detectado: " + devices[0];
+                }
+                else if (devices.Count > 1)
+                {
+                    DetectedDevices.SelectedIndex = -1;
+                    ConnectionMessage.Text = "Selecciona tu mando de la lista.";
+                    DetectedDevices.IsDropDownOpen = IsVisible;
+                }
+                else ConnectionMessage.Text = "No se encontro ningun mando. Despiertalo y vuelve a buscar.";
+            }
+            catch (OperationCanceledException) { ConnectionMessage.Text = "La busqueda tardo demasiado. Intentalo de nuevo."; }
+            catch (Exception ex) { ConnectionMessage.Text = "No se pudo buscar el mando: " + ex.Message; }
+            finally { discoveryAttempt = null; DetectButton.IsEnabled = true; }
+        }
+
+        private async void DetectedDevices_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (DetectedDevices.SelectedItem is string address)
+            {
+                User.Default.MACAddressText = address;
+                User.Default.Save();
+                ConnectionMessage.Text = "Mando seleccionado: " + address;
+                if (reconnectEnabled && User.Default.AutoConnect && discoveryAttempt == null) await ConnectAsync();
+            }
+        }
+
+        private async void ConnectButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (radioResetInProgress) return;
+            waitingForWake = false;
+            StopWakeMonitoring();
+            wakeRetryEnabled = false;
+            if (string.IsNullOrWhiteSpace(User.Default.MACAddressText)) await DetectControllersAsync(true);
+            if (string.IsNullOrWhiteSpace(User.Default.MACAddressText)) return;
+            User.Default.Save();
+            reconnectEnabled = true;
+            await ConnectAsync();
+        }
+
+        private async Task ConnectAsync()
+        {
+            if (radioResetInProgress || connectionAttempt != null || discoveryAttempt != null || string.IsNullOrWhiteSpace(User.Default.MACAddressText)) return;
+            using var attempt = new CancellationTokenSource(TimeSpan.FromSeconds(12));
+            connectionAttempt = attempt;
+            ConnectButton.IsEnabled = false;
+            ConnectionMessage.Text = "Buscando el mando...";
+            try
+            {
+                await MainProgram.GetInstance().Pair_Connect(attempt.Token);
+                if (attempt.IsCancellationRequested) return;
+                ConnectionMessage.Text = "Conectado. Esperando datos del mando...";
+            }
+            catch (OperationCanceledException)
+            {
+                ConnectionMessage.Text = !reconnectEnabled ? "Desconectado." : (User.Default.AutoConnect || wakeRetryEnabled)
+                    ? "Sin respuesta. Volveremos a intentarlo automaticamente."
+                    : "Sin respuesta. Despierta el mando y vuelve a intentar.";
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine(ex);
+                ConnectionMessage.Text = reconnectEnabled && (User.Default.AutoConnect || wakeRetryEnabled)
+                    ? "No se pudo conectar: " + ex.Message + " Se volvera a intentar."
+                    : "No se pudo conectar: " + ex.Message;
+            }
+            finally
+            {
+                if (ReferenceEquals(connectionAttempt, attempt)) connectionAttempt = null;
+                ConnectButton.IsEnabled = true;
+            }
         }
 
         private void PowerOffButton_Click(object sender, RoutedEventArgs e)
         {
+            reconnectEnabled = false;
+            wakeRetryEnabled = false;
+            waitingForWake = false;
+            StopWakeMonitoring();
+            connectionAttempt?.Cancel();
             MainProgram.GetInstance().Disconnect();
+            ConnectionMessage.Text = "Desconectado.";
+        }
+
+        private async void AutoConnect_Changed(object sender, RoutedEventArgs e)
+        {
+            if (!IsLoaded) return;
+            User.Default.AutoConnect = CheckBoxAutoConnect.IsChecked == true;
+            User.Default.Save();
+            reconnectEnabled = User.Default.AutoConnect;
+            if (reconnectEnabled && !Settings.Default._Connected)
+            {
+                StopWakeMonitoring();
+                wakeRetryEnabled = false;
+                await ConnectAsync();
+            }
+        }
+
+        private void MotionPointerCheckBox_Changed(object sender, RoutedEventArgs e)
+        {
+            User.Default.Save();
+            MainProgram.GetInstance().ResetMotionPointer();
         }
 
         private void AxisCheckBox_Changed(object sender, RoutedEventArgs e)

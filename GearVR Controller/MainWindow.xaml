@@ -1,518 +1,106 @@
-﻿<Window x:Class="GearVR_Controller.MainWindow"
+<Window x:Class="GearVR_Controller.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:GearVR_Controller"
-        mc:Ignorable="d"
-        ResizeMode="CanMinimize"
-        Title="GearVR Controller" Height="475" Width="817" Loaded="Window_Loaded" Closing="Window_Closing">
+        Title="Gear VR Controller" Width="1040" Height="790" MinWidth="850" MinHeight="650"
+        Background="#0E1421" Foreground="#EAF0FA" FontFamily="Segoe UI" WindowStartupLocation="CenterScreen"
+        Loaded="Window_Loaded" Closing="Window_Closing">
+    <Window.Resources>
+        <SolidColorBrush x:Key="Muted" Color="#9BAAC0"/>
+        <Style TargetType="TextBlock"><Setter Property="Foreground" Value="#EAF0FA"/></Style>
+        <Style TargetType="CheckBox"><Setter Property="Foreground" Value="#DAE4F2"/><Setter Property="Margin" Value="0,6"/><Setter Property="VerticalContentAlignment" Value="Center"/></Style>
+        <Style TargetType="TextBox"><Setter Property="Background" Value="#0E1727"/><Setter Property="Foreground" Value="#F0F5FF"/><Setter Property="BorderBrush" Value="#36465E"/><Setter Property="Padding" Value="10,8"/></Style>
+        <Style TargetType="Button">
+            <Setter Property="Foreground" Value="#ECF4FF"/><Setter Property="Background" Value="#293C56"/><Setter Property="BorderThickness" Value="0"/><Setter Property="Padding" Value="13,8"/><Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template"><Setter.Value><ControlTemplate TargetType="Button"><Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="7" Padding="{TemplateBinding Padding}"><ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/></Border><ControlTemplate.Triggers><Trigger Property="IsMouseOver" Value="True"><Setter TargetName="border" Property="Opacity" Value="0.75"/></Trigger><Trigger Property="IsEnabled" Value="False"><Setter TargetName="border" Property="Opacity" Value="0.4"/></Trigger></ControlTemplate.Triggers></ControlTemplate></Setter.Value></Setter>
+        </Style>
+        <Style x:Key="Card" TargetType="Border"><Setter Property="Background" Value="#182437"/><Setter Property="CornerRadius" Value="12"/><Setter Property="Padding" Value="20"/><Setter Property="Margin" Value="0,0,0,14"/><Setter Property="BorderBrush" Value="#283A52"/><Setter Property="BorderThickness" Value="1"/></Style>
+        <Style x:Key="Heading" TargetType="TextBlock"><Setter Property="FontWeight" Value="SemiBold"/><Setter Property="FontSize" Value="16"/><Setter Property="Margin" Value="0,0,0,8"/></Style>
+        <Style x:Key="BindingButton" TargetType="Button" BasedOn="{StaticResource {x:Type Button}}"><Setter Property="Margin" Value="3"/><Setter Property="MinWidth" Value="70"/><Setter Property="Background" Value="#304862"/></Style>
+    </Window.Resources>
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <Grid Margin="28,24">
+        <Grid.RowDefinitions><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/><RowDefinition Height="Auto"/></Grid.RowDefinitions>
+        <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="16"/><ColumnDefinition Width="1.05*"/></Grid.ColumnDefinitions>
+        <StackPanel Grid.Row="0" Grid.ColumnSpan="3" Margin="0,0,0,20">
+          <TextBlock Text="GEAR VR  /  WINDOWS" Foreground="#64D6C9" FontWeight="Bold" FontSize="11"/>
+          <TextBlock Text="Controla tu PC con movimiento" FontSize="27" FontWeight="SemiBold" Margin="0,4,0,3"/>
+          <TextBlock Text="Conecta tu mando, ajusta el puntero y personaliza sus botones." Foreground="{StaticResource Muted}"/>
+        </StackPanel>
+        <Border Style="{StaticResource Card}" Grid.Row="1" Grid.Column="0">
+          <StackPanel>
+            <DockPanel><TextBlock Text="Conexión" Style="{StaticResource Heading}"/><Ellipse Fill="{Binding Source={x:Static local:Settings.Default}, Path=_Status}" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Top" Margin="0,5,0,0"/></DockPanel>
+            <TextBlock Text="Dirección Bluetooth del mando" Foreground="{StaticResource Muted}" Margin="0,2,0,6"/>
+            <DockPanel LastChildFill="True">
+              <Button x:Name="DetectButton" DockPanel.Dock="Right" Content="Detectar" Click="DetectButton_Click" Margin="8,0,0,0"/>
+              <TextBox x:Name="MACAddressText" Text="{Binding Source={x:Static local:User.Default}, Path=MACAddressText, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"/>
+            </DockPanel>
+            <ComboBox x:Name="DetectedDevices" Visibility="Collapsed" SelectionChanged="DetectedDevices_SelectionChanged" Margin="0,8,0,0" ToolTip="Selecciona el mando que quieres conectar"/>
+            <StackPanel Orientation="Horizontal" Margin="0,12,0,4"><Button x:Name="ConnectButton" Content="Conectar" Background="#167E84" Click="ConnectButton_Click" Margin="0,0,8,0"/><Button Content="Desconectar" Click="PowerOffButton_Click"/></StackPanel>
+            <CheckBox x:Name="CheckBoxAutoConnect" Checked="AutoConnect_Changed" Unchecked="AutoConnect_Changed" IsChecked="{Binding Source={x:Static local:User.Default}, Path=AutoConnect, Mode=TwoWay}" Content="Conectar y reconectar autom&#225;ticamente"/>
+            <TextBlock x:Name="ConnectionMessage" Text="Desconectado." Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,3,0,2"/>
+            <CheckBox x:Name="StartupCheckBox" Content="Iniciar con Windows, minimizado" Checked="StartupCheckBox_Changed" Unchecked="StartupCheckBox_Changed"/>
+            <CheckBox x:Name="IdleDisconnectCheckBox" IsChecked="{Binding Source={x:Static local:User.Default}, Path=IdleDisconnect, Mode=TwoWay}" Content="Desconectar por inactividad" Checked="IdleDisconnect_Changed" Unchecked="IdleDisconnect_Changed"/>
+            <StackPanel Orientation="Horizontal" Margin="0,2,0,0" IsEnabled="{Binding IsChecked, ElementName=IdleDisconnectCheckBox}">
+              <TextBlock Text="Desconectar despu&#233;s de" VerticalAlignment="Center" Margin="0,0,8,0"/>
+              <TextBox x:Name="IdleTimeoutText" Width="54" Padding="6,4" LostFocus="IdleTimeoutText_LostFocus" KeyDown="IdleTimeoutText_KeyDown" ToolTip="Escribe un n&#250;mero de 1 a 1440 minutos"/>
+              <TextBlock Text="minutos" VerticalAlignment="Center" Margin="8,0,0,0"/>
+            </StackPanel>
+            <TextBlock Text="Solo los botones y el touchpad reinician el tiempo; mover el mando no lo hace." Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,8,0,0"/>
+            <CheckBox x:Name="IdleWakeReconnectCheckBox" IsChecked="{Binding Source={x:Static local:User.Default}, Path=IdleWakeReconnect, Mode=TwoWay}" IsEnabled="{Binding IsChecked, ElementName=IdleDisconnectCheckBox}" Content="Reconectar al despertar el mando" Checked="IdleWakeReconnect_Changed" Unchecked="IdleWakeReconnect_Changed"/>
+            <StackPanel IsEnabled="{Binding IsChecked, ElementName=IdleDisconnectCheckBox}">
+              <CheckBox x:Name="RestartBluetoothCheckBox" IsChecked="{Binding Source={x:Static local:User.Default}, Path=RestartBluetoothAfterIdle, Mode=TwoWay}" IsEnabled="{Binding IsChecked, ElementName=IdleWakeReconnectCheckBox}" Content="Reiniciar Bluetooth tras inactividad (opcional)" Checked="RestartBluetooth_Changed" Unchecked="RestartBluetooth_Changed" ToolTip="Apaga y enciende el adaptador cuando el mando deja de anunciarse. Interrumpe temporalmente todos los dispositivos Bluetooth de ese adaptador."/>
+              <TextBlock Text="Afecta temporalmente a todos los dispositivos Bluetooth del adaptador." Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,0,0,4"/>
+            </StackPanel>
+            <TextBlock Text="Con la reconexi&#243;n activada, espera al reposo y pulsa un bot&#243;n del mando." Foreground="{StaticResource Muted}" FontSize="11" TextWrapping="Wrap" Margin="0,4,0,0"/>
 
-
-    <Grid Background="#FF616161">
-
-        <Grid.ColumnDefinitions>
-            <ColumnDefinition Width="20"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="*"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="Auto"/>
-            <ColumnDefinition Width="20"/>
-        </Grid.ColumnDefinitions>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="20"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
-            <RowDefinition Height="20"/>
-        </Grid.RowDefinitions>
-
-        <!-- Sensor data -->
-        <Label x:Name="SensorDataLabel" Content="Sensor Data" Grid.Column="1" Grid.Row="1" />
-        <CheckBox x:Name="AxisCheckBox" IsChecked="{Binding Source={x:Static local:User.Default}, Path=Axis, Mode=TwoWay}" Content="Axis" Grid.Column="1" Grid.Row="2" Checked="AxisCheckBox_Changed" Unchecked="AxisCheckBox_Changed"/>
-        <CheckBox x:Name="GyroCheckBox" IsChecked="{Binding Source={x:Static local:User.Default}, Path=Gyro, Mode=TwoWay}" Content="Gyro" Grid.Column="1" Grid.Row="3" Checked="GyroCheckBox_Changed" Unchecked="GyroCheckBox_Changed"/>
-        <CheckBox x:Name="MagnetCheckBox" IsChecked="{Binding Source={x:Static local:User.Default}, Path=Magnet, Mode=TwoWay}" Content="Magnet" Grid.Column="1" Grid.Row="4" Checked="MagnetCheckBox_Changed" Unchecked="MagnetCheckBox_Changed"/>
-        <CheckBox x:Name="AccelCheckBox" IsChecked="{Binding Source={x:Static local:User.Default}, Path=Accel, Mode=TwoWay}"  Content="Accel" Grid.Column="1" Grid.Row="5" Checked="AccelCheckBox_Changed" Unchecked="AccelCheckBox_Changed"/>
-        <Border BorderThickness="1" BorderBrush="Black" Grid.Column="2" Grid.Row="2" Width="100">
-            <TextBlock x:Name="AxisXText" Text="{Binding AxisX , UpdateSourceTrigger=PropertyChanged}" MinWidth="100"/>
+          </StackPanel>
         </Border>
-        <Border BorderThickness="0,1,1,1" BorderBrush="Black" Grid.Column="3" Grid.Row="2" Width="100">
-            <TextBlock x:Name="AxisYText" Text="{Binding AxisY , UpdateSourceTrigger=PropertyChanged}" MinWidth="100"/>
+        <Border Style="{StaticResource Card}" Grid.Row="1" Grid.Column="2">
+          <StackPanel>
+            <TextBlock Text="Puntero por movimiento" Style="{StaticResource Heading}"/>
+            <TextBlock Text="Apunta el mando para dirigir el cursor." Foreground="{StaticResource Muted}"/>
+            <CheckBox x:Name="MotionPointerCheckBox" IsChecked="{Binding Source={x:Static local:User.Default}, Path=MotionPointer, Mode=TwoWay}" Content="Activar apuntado con giroscopio" Margin="0,14,0,8" Checked="MotionPointerCheckBox_Changed" Unchecked="MotionPointerCheckBox_Changed"/>
+            <DockPanel Margin="0,7,0,0"><TextBlock Text="Sensibilidad"/><TextBlock DockPanel.Dock="Right" HorizontalAlignment="Right" Foreground="#64D6C9" Text="{Binding Source={x:Static local:User.Default}, Path=MotionSensitivity, StringFormat={}{0:0.00}x}"/></DockPanel>
+            <Slider x:Name="SensitivitySlider" Minimum="0.25" Maximum="3" TickFrequency="0.05" IsSnapToTickEnabled="True" Value="{Binding Source={x:Static local:User.Default}, Path=MotionSensitivity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" ValueChanged="SensitivitySlider_Changed" Margin="0,8,0,4"/>
+            <TextBlock Text="Mantén HOME un segundo para centrar y calibrar." Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,8,0,0"/>
+          </StackPanel>
         </Border>
-        <Border BorderThickness="1,0,1,1" BorderBrush="Black" Grid.Column="2" Grid.Row="3" Width="100">
-            <TextBlock x:Name="GyroXText" Text="{Binding GyroX}" MinWidth="100"/>
+        <Border Style="{StaticResource Card}" Grid.Row="2" Grid.ColumnSpan="3">
+          <StackPanel>
+            <TextBlock Text="Asignación de botones" Style="{StaticResource Heading}"/>
+            <TextBlock Text="Selecciona una zona o bot&#243;n para cambiar su acci&#243;n; pasa el cursor para ver la asignaci&#243;n." Foreground="{StaticResource Muted}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <StackPanel Grid.Column="0">
+                <TextBlock Text="PULSAR TOUCHPAD" Foreground="#64D6C9" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                <TextBlock Text="Pulsa una zona del panel" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                <Canvas Width="214" Height="214" HorizontalAlignment="Center" Margin="0,8,0,0"><Ellipse Width="208" Height="208" Canvas.Left="3" Canvas.Top="3" Fill="#101B2C" Stroke="#45627A" StrokeThickness="2"/><Button Canvas.Left="78" Canvas.Top="8" Width="58" Height="54" Padding="2" Content="Arriba" Click="TouchTopButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=TouchTopButton}"/><Button Canvas.Left="12" Canvas.Top="78" Width="58" Height="54" Padding="2" Content="Izq." Click="TouchLeftButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=TouchLeftButton}"/><Button Canvas.Left="78" Canvas.Top="78" Width="58" Height="54" Padding="2" Content="Centro" Click="TouchMidButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=TouchMidButton}"/><Button Canvas.Left="144" Canvas.Top="78" Width="58" Height="54" Padding="2" Content="Der." Click="TouchRightButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=TouchRightButton}"/><Button Canvas.Left="78" Canvas.Top="148" Width="58" Height="54" Padding="2" Content="Abajo" Click="TouchBotButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=TouchBotButton}"/></Canvas>
+              </StackPanel>
+              <StackPanel Grid.Column="1">
+                <TextBlock Text="GATILLO + TOUCHPAD" Foreground="#64D6C9" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                <TextBlock Text="Toca una zona y pulsa el gatillo" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                <Canvas Width="214" Height="214" HorizontalAlignment="Center" Margin="0,8,0,0"><Ellipse Width="208" Height="208" Canvas.Left="3" Canvas.Top="3" Fill="#101B2C" Stroke="#45627A" StrokeThickness="2"/><Button Canvas.Left="78" Canvas.Top="8" Width="58" Height="54" Padding="2" Content="Arriba" Click="TriggerTopButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=TriggerTopButton}"/><Button Canvas.Left="12" Canvas.Top="78" Width="58" Height="54" Padding="2" Content="Izq." Click="TriggerLeftButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=TriggerLeftButton}"/><Button Canvas.Left="78" Canvas.Top="78" Width="58" Height="54" Padding="2" Content="Centro" Click="TriggerMidButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=TriggerMidButton}"/><Button Canvas.Left="144" Canvas.Top="78" Width="58" Height="54" Padding="2" Content="Der." Click="TriggerRightButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=TriggerRightButton}"/><Button Canvas.Left="78" Canvas.Top="148" Width="58" Height="54" Padding="2" Content="Abajo" Click="TriggerBotButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=TriggerBotButton}"/></Canvas>
+              </StackPanel>
+              <StackPanel Grid.Column="2">
+                <TextBlock Text="BOTONES DEL MANDO" Foreground="#64D6C9" FontWeight="SemiBold" HorizontalAlignment="Center"/>
+                <TextBlock Text="Frente del mando; gatillo en la parte posterior" Foreground="{StaticResource Muted}" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+                <Canvas Width="235" Height="235" HorizontalAlignment="Center" Margin="0,4,0,0">
+                  <Border Canvas.Left="43" Canvas.Top="3" Width="136" Height="225" CornerRadius="65,65,58,58" Background="#0F1929" BorderBrush="#48617B" BorderThickness="2"/>
+                  <Ellipse Canvas.Left="65" Canvas.Top="18" Width="92" Height="92" Fill="#22354B" Stroke="#53708B" StrokeThickness="2"/>
+                  <TextBlock Canvas.Left="84" Canvas.Top="53" Text="PANEL" Foreground="#9BAAC0" FontSize="11"/>
+                  <Button Canvas.Left="48" Canvas.Top="119" Width="58" Height="30" Padding="0" Content="Atr&#225;s" Click="BackButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=BackButton}"/>
+                  <Button Canvas.Left="117" Canvas.Top="119" Width="58" Height="30" Padding="0" Content="Home" Click="HomeButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=HomeButton}"/>
+                  <Button Canvas.Left="53" Canvas.Top="161" Width="48" Height="31" Padding="0" Content="Vol +" Click="VolumeUpButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=VolumeUpButton}"/>
+                  <Button Canvas.Left="120" Canvas.Top="161" Width="48" Height="31" Padding="0" Content="Vol -" Click="VolumeDownButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=VolumeDownButton}"/>
+                  <Button Canvas.Left="179" Canvas.Top="76" Width="54" Height="72" Padding="2" Background="#167E84" Content="Gatillo" Click="TriggerButton_Click" ToolTip="{Binding Source={x:Static local:User.Default}, Path=TriggerButton}"/>
+                </Canvas>
+                <Button Content="Velocidad de la rueda" HorizontalAlignment="Center" Padding="10,6" Click="ScrollWheelSpeed_Click"/>
+              </StackPanel>
+            </Grid>
+          </StackPanel>
         </Border>
-        <Border BorderThickness="1,0,1,1" BorderBrush="Black" Grid.Column="2" Grid.Row="4" Width="100">
-            <TextBlock x:Name="MagnetXText" Text="{Binding MagnetX}" MinWidth="100"/>
-        </Border>
-        <Border BorderThickness="1,0,1,1" BorderBrush="Black" Grid.Column="2" Grid.Row="5" Width="100">
-            <TextBlock x:Name="AccelXText" Text="{Binding AccelX}" MinWidth="100"/>
-        </Border>
-        <Border BorderThickness="0,0,1,1" BorderBrush="Black" Grid.Column="3" Grid.Row="3" Width="100">
-            <TextBlock x:Name="GyroYText" Text="{Binding GyroY}" MinWidth="100"/>
-        </Border>
-        <Border BorderThickness="0,0,1,1" BorderBrush="Black" Grid.Column="3" Grid.Row="4" Width="100">
-            <TextBlock x:Name="MagnetYText" Text="{Binding MagnetY}" MinWidth="100"/>
-        </Border>
-        <Border BorderThickness="0,0,1,1" BorderBrush="Black" Grid.Column="3" Grid.Row="5" Width="100">
-            <TextBlock x:Name="AccelYText" Text="{Binding AccelY}" MinWidth="100"/>
-        </Border>
-        <Border BorderThickness="0,1,1,1" BorderBrush="Black" Grid.Column="4" Grid.Row="3" Width="100">
-            <TextBlock x:Name="GyroZText" Text="{Binding GyroZ}" MinWidth="100"/>
-        </Border>
-        <Border BorderThickness="0,0,1,1" BorderBrush="Black" Grid.Column="4" Grid.Row="4" Width="100">
-            <TextBlock x:Name="MagnetZText" Text="{Binding MagnetZ}" MinWidth="100" />
-        </Border>
-        <Border BorderThickness="0,0,1,1" BorderBrush="Black" Grid.Column="4" Grid.Row="5" Width="100">
-            <TextBlock x:Name="AccelZText" Text="{Binding AccelZ}" MinWidth="100"/>
-        </Border>
-
-        <!-- Device Connection -->
-        <Ellipse x:Name="TouchMidEllipse" Fill="{Binding Source={x:Static local:Settings.Default}, Path=_Status}" Grid.Column="6" Grid.Row="1" Width="10" Height="10" HorizontalAlignment="Right" VerticalAlignment="Center">
-            <Ellipse.Effect>
-                <DropShadowEffect Color="{Binding Source={x:Static local:Settings.Default}, Path=_StatusEffect}" ShadowDepth="0" Direction="0" BlurRadius="25"  />
-            </Ellipse.Effect>
-        </Ellipse>
-        <Label x:Name="MACAddressLabel" Content="MAC Address" Grid.Column="7" Grid.Row="1"/>
-        <TextBox x:Name="MACAddressText" Text="{Binding Source={x:Static local:User.Default}, 
-           Path=MACAddressText, Mode=TwoWay}" Grid.Column="8" Grid.Row="1" MinWidth="100" VerticalAlignment="Center"/>
-        <Button x:Name="ConnectButton" Grid.Column="7" Grid.Row="2" Content="Connect" Click="ConnectButton_Click"/>
-        <Button x:Name="PowerOffButton" Grid.Column="8" Grid.Row="2" Content="Turn Off" Click="PowerOffButton_Click"/>
-        <CheckBox x:Name="CheckBoxAutoConnect" IsChecked="{Binding Source={x:Static local:User.Default}, Path=AutoConnect, Mode=TwoWay}" Content="Auto-connect" Grid.Column="7" Grid.Row="4" />
-
-        <!-- Wheel -->
-
-        <Button x:Name="ScrollWheelSpeed" Grid.Column="2" Grid.Row="7" Grid.ColumnSpan="3" Grid.RowSpan="3" Click="ScrollWheelSpeed_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Path x:Name="ScrollWheelSpeedPath" Fill="#FF3C3C3C" >
-                            <Path.Data>
-                                <CombinedGeometry GeometryCombineMode="Xor">
-                                    <CombinedGeometry.Geometry1>
-                                        <EllipseGeometry RadiusX="100" RadiusY="100" Center="50,50" />
-                                    </CombinedGeometry.Geometry1>
-                                    <CombinedGeometry.Geometry2>
-                                        <EllipseGeometry RadiusX="115" RadiusY="115" Center="50,50" />
-                                    </CombinedGeometry.Geometry2>
-                                </CombinedGeometry>
-                            </Path.Data>
-                        </Path>
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="ScrollWheelSpeedPath" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-
-        <Button x:Name="ScrollWheelSeg" Grid.Column="7" Grid.Row="7" Grid.ColumnSpan="3" Grid.RowSpan="3" Click="ScrollWheelSeg_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Path x:Name="ScrollWheelSegPath" Fill="#FF3C3C3C" >
-                            <Path.Data>
-                                <CombinedGeometry GeometryCombineMode="Xor">
-                                    <CombinedGeometry.Geometry1>
-                                        <EllipseGeometry RadiusX="100" RadiusY="100" Center="50,50" />
-                                    </CombinedGeometry.Geometry1>
-                                    <CombinedGeometry.Geometry2>
-                                        <EllipseGeometry RadiusX="115" RadiusY="115" Center="50,50" />
-                                    </CombinedGeometry.Geometry2>
-                                </CombinedGeometry>
-                            </Path.Data>
-                        </Path>
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="ScrollWheelSegPath" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-
-        <!-- Touchpad Buttons -->
-        <Label x:Name="TouchPadLabel" Content="ButtonPad" Grid.Column="2" Grid.Row="6" HorizontalAlignment="Center" FontWeight="Bold"/>
-        <Button x:Name="TouchTopButton" Grid.Column="2" Grid.Row="6" Content="TOP" Click="TouchTopButton_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Path x:Name="TouchTopPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FFC31D1D" StrokeThickness="0">
-                            <Path.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform/>
-                                    <SkewTransform/>
-                                    <RotateTransform Angle="135"/>
-                                    <TranslateTransform X="0" Y="30"/>
-                                </TransformGroup>
-                            </Path.RenderTransform>
-                            <Path.Data>
-                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
-                            </Path.Data>
-                        </Path>
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="TouchTopPath" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-        <Button x:Name="TouchRightButton" Grid.Column="3" Grid.Row="7" Content="RIGHT" Click="TouchRightButton_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Path x:Name="TouchRightPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FF4BB578" StrokeThickness="0">
-                            <Path.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform/>
-                                    <SkewTransform/>
-                                    <RotateTransform Angle="-135"/>
-                                    <TranslateTransform X="-30" Y="0"/>
-                                </TransformGroup>
-                            </Path.RenderTransform>
-                            <Path.Data>
-                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
-                            </Path.Data>
-                        </Path>
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Left" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
-                            <ContentPresenter.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform/>
-                                    <SkewTransform/>
-                                    <RotateTransform Angle="90"/>
-                                    <TranslateTransform/>
-                                </TransformGroup>
-                            </ContentPresenter.RenderTransform>
-                        </ContentPresenter>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="TouchRightPath" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-        <Button x:Name="TouchBotButton" Grid.Column="2" Grid.Row="8" Content="BOTTOM" Click="TouchBotButton_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Path x:Name="TouchBotPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FF9FBD40" StrokeThickness="0">
-                            <Path.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform/>
-                                    <SkewTransform/>
-                                    <RotateTransform Angle="-45"/>
-                                    <TranslateTransform X="0" Y="-30"/>
-                                </TransformGroup>
-                            </Path.RenderTransform>
-                            <Path.Data>
-                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
-                            </Path.Data>
-                        </Path>
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Top"/>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="TouchBotPath" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-        <Button x:Name="TouchLeftButton" Grid.Column="1" Grid.Row="7" Content="LEFT" Click="TouchLeftButton_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Path x:Name="TouchLeftPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FF2AA3D6" StrokeThickness="0">
-                            <Path.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform/>
-                                    <SkewTransform/>
-                                    <RotateTransform Angle="45"/>
-                                    <TranslateTransform X="30" Y="0"/>
-                                </TransformGroup>
-                            </Path.RenderTransform>
-                            <Path.Data>
-                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
-                            </Path.Data>
-                        </Path>
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Right" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
-                            <ContentPresenter.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform/>
-                                    <SkewTransform/>
-                                    <RotateTransform Angle="-90"/>
-                                    <TranslateTransform/>
-                                </TransformGroup>
-                            </ContentPresenter.RenderTransform>
-                        </ContentPresenter>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="TouchLeftPath" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-        <Button x:Name="TouchMidButton" Grid.Column="2" Grid.Row="7" Content="MID" Click="TouchMidButton_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Ellipse x:Name="TouchMidEllipse" Fill="#FF3C3C3C" />
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="TouchMidEllipse" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-
-        <!-- Trigger+Pad controls -->
-        <Label x:Name="TriggerLabel" Content="TriggerPad" Grid.Column="7" Grid.Row="6" HorizontalAlignment="Center" FontWeight="Bold"/>
-        <Button x:Name="TriggerTopButton" Grid.Column="7" Grid.Row="6" Content="TOP" Click="TriggerTopButton_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Path x:Name="TriggerTopPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FFC31D1D" StrokeThickness="0">
-                            <Path.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform/>
-                                    <SkewTransform/>
-                                    <RotateTransform Angle="135"/>
-                                    <TranslateTransform X="0" Y="30"/>
-                                </TransformGroup>
-                            </Path.RenderTransform>
-                            <Path.Data>
-                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
-                            </Path.Data>
-                        </Path>
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Bottom"/>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="TriggerTopPath" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-        <Button x:Name="TriggerRightButton" Grid.Column="8" Grid.Row="7" Content="RIGHT" Click="TriggerRightButton_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Path x:Name="TriggerRightPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FF4BB578" StrokeThickness="0">
-                            <Path.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform/>
-                                    <SkewTransform/>
-                                    <RotateTransform Angle="-135"/>
-                                    <TranslateTransform X="-30" Y="0"/>
-                                </TransformGroup>
-                            </Path.RenderTransform>
-                            <Path.Data>
-                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
-                            </Path.Data>
-                        </Path>
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Left" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
-                            <ContentPresenter.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform/>
-                                    <SkewTransform/>
-                                    <RotateTransform Angle="90"/>
-                                    <TranslateTransform/>
-                                </TransformGroup>
-                            </ContentPresenter.RenderTransform>
-                        </ContentPresenter>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="TriggerRightPath" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-        <Button x:Name="TriggerBotButton" Grid.Column="7" Grid.Row="8" Content="BOTTOM" Click="TriggerBotButton_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Path x:Name="TriggerBotPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FF9FBD40" StrokeThickness="0">
-                            <Path.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform/>
-                                    <SkewTransform/>
-                                    <RotateTransform Angle="-45"/>
-                                    <TranslateTransform X="0" Y="-30"/>
-                                </TransformGroup>
-                            </Path.RenderTransform>
-                            <Path.Data>
-                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
-                            </Path.Data>
-                        </Path>
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Top"/>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="TriggerBotPath" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-        <Button x:Name="TriggerLeftButton" Grid.Column="6" Grid.Row="7" Content="LEFT" Click="TriggerLeftButton_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Path x:Name="TriggerLeftPath" Stroke="Black" Height="100"  RenderTransformOrigin=".5, .5" Fill="#FF2AA3D6" StrokeThickness="0">
-                            <Path.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform/>
-                                    <SkewTransform/>
-                                    <RotateTransform Angle="45"/>
-                                    <TranslateTransform X="30" Y="0"/>
-                                </TransformGroup>
-                            </Path.RenderTransform>
-                            <Path.Data>
-                                <PathGeometry Figures="M0,0 A 100,100 90 0 0 100,100 L 100,100 100,50 A 50,50 90 0 1 50,0 L 0,0" />
-                            </Path.Data>
-                        </Path>
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Right" VerticalAlignment="Center" RenderTransformOrigin="0.5,0.5">
-                            <ContentPresenter.RenderTransform>
-                                <TransformGroup>
-                                    <ScaleTransform/>
-                                    <SkewTransform/>
-                                    <RotateTransform Angle="-90"/>
-                                    <TranslateTransform/>
-                                </TransformGroup>
-                            </ContentPresenter.RenderTransform>
-                        </ContentPresenter>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="TriggerLeftPath" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-        <Button x:Name="TriggerMidButton" Grid.Column="7" Grid.Row="7" Content="MID" Click="TriggerMidButton_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Ellipse x:Name="TriggerMidEllipse" Fill="#FF3C3C3C"/>
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="TriggerMidEllipse" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-
-        <!-- Other Buttons -->
-        <Button x:Name="TriggerButton" Grid.Column="4" Grid.Row="6" Grid.ColumnSpan="2"  Content="TRIGGER" Margin="5" Click="TriggerButton_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <ContentControl>
-                        <Border x:Name="TriggerBorder" BorderBrush="Black" Background="#FFD45B5B" BorderThickness="1" CornerRadius="40,40,0,0">
-                            <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                    </ContentControl>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="TriggerBorder" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-        <Button x:Name="BackButton" Grid.Column="4" Grid.Row="7" Content="BACK" Width="95" Height="95" Click="BackButton_Click" >
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Ellipse x:Name="BackButtonEllipse" Fill="#FF3C3C3C" Stroke="Black"/>
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="BackButtonEllipse" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-        <Button x:Name="HomeButton" Grid.Column="4" Grid.Row="8" Content="HOME" Width="95" Height="95" Click="HomeButton_Click" >
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <Grid>
-                        <Ellipse x:Name="HomeButtonEllipse" Fill="#FF3C3C3C" Stroke="Black"/>
-                        <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                    </Grid>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="HomeButtonEllipse" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-        <Button x:Name="VolumeUpButton" Grid.Column="5" Grid.Row="7"  Content="+" FontSize="24" HorizontalAlignment="Stretch" Click="VolumeUpButton_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <ContentControl>
-                        <Border x:Name="VolUpBorder" BorderBrush="Black" Background="#FF2E76EC" BorderThickness="1" CornerRadius="30,30,0,0" Margin="5">
-                            <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center" />
-                        </Border>
-                    </ContentControl>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="VolUpBorder" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-        <Button x:Name="VolumeDownButton" Grid.Column="5" Grid.Row="8"  Content="-" FontSize="24" HorizontalAlignment="Stretch" Click="VolumeDownButton_Click">
-            <Button.Template>
-                <ControlTemplate TargetType="{x:Type Button}">
-                    <ContentControl>
-                        <Border x:Name="VolDownBorder" BorderBrush="Black" Background="#FFDA423B" BorderThickness="1" CornerRadius="0,0,30,30" Margin="5">
-                            <ContentPresenter Content="{TemplateBinding Content}" HorizontalAlignment="Center" VerticalAlignment="Center"/>
-                        </Border>
-                    </ContentControl>
-                    <ControlTemplate.Triggers>
-                        <Trigger Property="IsMouseOver" Value="True">
-                            <Setter TargetName="VolDownBorder" Property="Opacity" Value="0.5" />
-                        </Trigger>
-                    </ControlTemplate.Triggers>
-                </ControlTemplate>
-            </Button.Template>
-        </Button>
-    </Grid>
-</Window> 
+        <Border Style="{StaticResource Card}" Grid.Row="3" Grid.ColumnSpan="3"><StackPanel><TextBlock Text="Sensores" Style="{StaticResource Heading}"/><TextBlock Text="Activa las lecturas que quieras consultar." Foreground="{StaticResource Muted}"/><WrapPanel Margin="0,8,0,0"><StackPanel Margin="0,0,25,0"><CheckBox Content="Touchpad" IsChecked="{Binding Source={x:Static local:User.Default}, Path=Axis, Mode=TwoWay}" Checked="AxisCheckBox_Changed" Unchecked="AxisCheckBox_Changed"/><TextBlock Text="{Binding AxisX, StringFormat=X: {0}}"/><TextBlock Text="{Binding AxisY, StringFormat=Y: {0}}"/></StackPanel><StackPanel Margin="0,0,25,0"><CheckBox Content="Giroscopio" IsChecked="{Binding Source={x:Static local:User.Default}, Path=Gyro, Mode=TwoWay}" Checked="GyroCheckBox_Changed" Unchecked="GyroCheckBox_Changed"/><TextBlock Text="{Binding GyroX, StringFormat=X: {0}}"/><TextBlock Text="{Binding GyroY, StringFormat=Y: {0}}"/><TextBlock Text="{Binding GyroZ, StringFormat=Z: {0}}"/></StackPanel><StackPanel Margin="0,0,25,0"><CheckBox Content="Acelerómetro" IsChecked="{Binding Source={x:Static local:User.Default}, Path=Accel, Mode=TwoWay}" Checked="AccelCheckBox_Changed" Unchecked="AccelCheckBox_Changed"/><TextBlock Text="{Binding AccelX, StringFormat=X: {0}}"/><TextBlock Text="{Binding AccelY, StringFormat=Y: {0}}"/><TextBlock Text="{Binding AccelZ, StringFormat=Z: {0}}"/></StackPanel><StackPanel><CheckBox Content="Magnetómetro" IsChecked="{Binding Source={x:Static local:User.Default}, Path=Magnet, Mode=TwoWay}" Checked="MagnetCheckBox_Changed" Unchecked="MagnetCheckBox_Changed"/><TextBlock Text="{Binding MagnetX, StringFormat=X: {0}}"/><TextBlock Text="{Binding MagnetY, StringFormat=Y: {0}}"/><TextBlock Text="{Binding MagnetZ, StringFormat=Z: {0}}"/></StackPanel></WrapPanel></StackPanel></Border>
+      </Grid>
+    </ScrollViewer>
+</Window>

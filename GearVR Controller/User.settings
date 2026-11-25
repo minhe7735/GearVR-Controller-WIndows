@@ -1,4 +1,4 @@
-﻿<?xml version='1.0' encoding='utf-8'?>
+<?xml version='1.0' encoding='utf-8'?>
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="GearVR_Controller" GeneratedClassName="User">
   <Profiles />
   <Settings>
@@ -45,7 +45,7 @@
       <Value Profile="(Default)">Volume Down</Value>
     </Setting>
     <Setting Name="MACAddressText" Type="System.String" Scope="User">
-      <Value Profile="(Default)">F6:FA:0F:BA:BA:2C</Value>
+      <Value Profile="(Default)"></Value>
     </Setting>
     <Setting Name="Axis" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
@@ -69,6 +69,24 @@
       <Value Profile="(Default)">12</Value>
     </Setting>
     <Setting Name="AutoConnect" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
+    <Setting Name="MotionPointer" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="MotionSensitivity" Type="System.Double" Scope="User">
+      <Value Profile="(Default)">1</Value>
+    </Setting>
+    <Setting Name="IdleDisconnect" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="IdleTimeoutMinutes" Type="System.Int32" Scope="User">
+      <Value Profile="(Default)">5</Value>
+    </Setting>
+    <Setting Name="IdleWakeReconnect" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="RestartBluetoothAfterIdle" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
   </Settings>
